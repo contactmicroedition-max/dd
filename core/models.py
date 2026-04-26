@@ -79,6 +79,7 @@ class Drone(models.Model):
     assigned_to = models.ForeignKey(CustomUser, null=True, blank=True,
                                     on_delete=models.SET_NULL, related_name='assigned_drones')
     location_name = models.CharField(max_length=200, blank=True)
+    stream_url = models.URLField(max_length=500, blank=True, help_text="MJPEG/HTTP video stream URL")
     image = models.ImageField(upload_to='drones/', null=True, blank=True)
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

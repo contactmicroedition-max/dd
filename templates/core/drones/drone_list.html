@@ -71,12 +71,12 @@
       <a href="{% url 'core:drone_detail' drone.pk %}" class="btn btn-sm btn-outline drone-action-main">
         <i class="fa fa-eye"></i> {% if lang == 'ar' %}التفاصيل{% elif lang == 'fr' %}Details{% else %}Details{% endif %}
       </a>
-      {% if drone.status == 'online' or drone.status == 'patrolling' %}
+      {% if drone.stream_url or drone.status == 'online' or drone.status == 'patrolling' %}
       <a href="{% url 'core:live_stream_drone' drone.pk %}" class="btn btn-sm btn-blue drone-action-main">
         <i class="fa fa-video"></i> {% if lang == 'ar' %}بث مباشر{% elif lang == 'fr' %}Flux en direct{% else %}Live Feed{% endif %}
       </a>
       {% else %}
-      <button type="button" class="btn btn-sm btn-blue btn-disabled drone-action-main" disabled aria-disabled="true" title="{% if lang == 'ar' %}غير متاح عند التوقف او الشحن او الصيانة{% elif lang == 'fr' %}Indisponible hors ligne, en charge ou en maintenance{% else %}Unavailable while offline, charging, or in maintenance{% endif %}">
+      <button type="button" class="btn btn-sm btn-blue btn-disabled drone-action-main" disabled aria-disabled="true" title="{% if lang == 'ar' %}اضف رابط بث في تعديل الطائرة{% elif lang == 'fr' %}Ajoutez une URL de flux dans l'edition du drone{% else %}Add a stream URL in drone edit{% endif %}">
         <i class="fa fa-video"></i> {% if lang == 'ar' %}بث مباشر{% elif lang == 'fr' %}Flux en direct{% else %}Live Feed{% endif %}
       </button>
       {% endif %}

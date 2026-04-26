@@ -3196,12 +3196,18 @@ def drone_add(request):
         messages.error(request, tr(lang, "Admin access required.", "يلزم صلاحية المشرف.", "Acces administrateur requis."))
         return redirect('core:drone_list')
     if request.method == 'POST':
+        import uuid
+        name = (request.POST.get('name') or '').strip()
+        stream_url = (request.POST.get('stream_url') or '').strip()
+        serial = f"DRN-{uuid.uuid4().hex[:8].upper()}"
+        while Drone.objects.filter(serial_number=serial).exists():
+            serial = f"DRN-{uuid.uuid4().hex[:8].upper()}"
         drone = Drone.objects.create(
-            name=request.POST.get('name'),
-            serial_number=request.POST.get('serial_number'),
-            status=request.POST.get('status', 'offline'),
-            location_name=request.POST.get('location_name', ''),
-            notes=request.POST.get('notes', ''),
+            name=name,
+            serial_number=serial,
+            stream_url=stream_url,
+            status='online' if stream_url else 'offline',
+            camera_active=bool(stream_url),
         )
         _log_security_event(
             'drone_added',
@@ -3210,7 +3216,7 @@ def drone_add(request):
             source='drone_management',
             user=request.user,
             drone=drone,
-            details={'serial_number': drone.serial_number, 'status': drone.status},
+            details={'serial_number': drone.serial_number, 'status': drone.status, 'stream_url': drone.stream_url},
         )
         if drone.status in ['online', 'patrolling']:
             _log_security_event(
@@ -3245,7 +3251,9 @@ def drone_edit(request, pk):
         drone.name = request.POST.get('name', drone.name)
         drone.status = request.POST.get('status', drone.status)
         drone.location_name = request.POST.get('location_name', drone.location_name)
+        drone.stream_url = (request.POST.get('stream_url') or drone.stream_url).strip()
         drone.notes = request.POST.get('notes', drone.notes)
+        drone.camera_active = bool(drone.stream_url)
         drone.save()
         _log_security_event(
             'drone_updated',
@@ -3709,7 +3717,9 @@ def live_stream(request, drone_id=None):
     control = _get_livestream_control()
     lang = get_lang(request)
 
-    drones = Drone.objects.filter(status__in=['online', 'patrolling'])
+    drones = Drone.objects.exclude(stream_url='').order_by('name')
+    if not drones.exists():
+        drones = Drone.objects.filter(status__in=['online', 'patrolling'])
     selected = get_object_or_404(Drone, pk=drone_id) if drone_id else drones.first()
     state = control.state
 

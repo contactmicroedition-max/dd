@@ -15,16 +15,16 @@
         <label>{% if lang == 'ar' %}اسم الطائرة{% elif lang == 'fr' %}Nom du drone{% else %}Drone Name{% endif %}</label>
         <input type="text" name="name" class="form-input" value="{{ drone.name|default:'' }}" required placeholder="{% if lang == 'ar' %}مثال: ألفا{% elif lang == 'fr' %}ex: Alpha{% else %}e.g. Alpha{% endif %}" />
       </div>
-      {% if action == 'Add' %}
       <div class="form-group">
-        <label>{% if lang == 'ar' %}الرقم التسلسلي{% elif lang == 'fr' %}Numero de serie{% else %}Serial Number{% endif %}</label>
-        <input type="text" name="serial_number" class="form-input" required placeholder="{% if lang == 'ar' %}مثال: DRN-001{% elif lang == 'fr' %}ex: DRN-001{% else %}e.g. DRN-001{% endif %}" />
+        <label>{% if lang == 'ar' %}رابط بث الفيديو{% elif lang == 'fr' %}URL du flux video{% else %}Video Stream URL{% endif %}</label>
+        <input type="url" name="stream_url" class="form-input" value="{{ drone.stream_url|default:'' }}" placeholder="http://127.0.0.1:5000/stream/annotated" />
+        <small class="text-muted">{% if lang == 'ar' %}رابط MJPEG/HTTP من تطبيق الكاميرا (مثلا تطبيق YOLO).{% elif lang == 'fr' %}URL MJPEG/HTTP du flux camera (ex: app YOLO).{% else %}MJPEG/HTTP feed from your camera app (e.g. the YOLO Flask app).{% endif %}</small>
       </div>
-      {% endif %}
+      {% if action != 'Add' %}
       <div class="form-group">
         <label>{% if lang == 'ar' %}الحالة{% elif lang == 'fr' %}Statut{% else %}Status{% endif %}</label>
         <select name="status" class="form-input">
-          <option value="offline" {% if drone and drone.status == 'offline' or not drone %}selected{% endif %}>{% if lang == 'ar' %}غير متصل{% elif lang == 'fr' %}Hors ligne{% else %}Offline{% endif %}</option>
+          <option value="offline" {% if drone and drone.status == 'offline' %}selected{% endif %}>{% if lang == 'ar' %}غير متصل{% elif lang == 'fr' %}Hors ligne{% else %}Offline{% endif %}</option>
           <option value="online" {% if drone and drone.status == 'online' %}selected{% endif %}>{% if lang == 'ar' %}متصل{% elif lang == 'fr' %}En ligne{% else %}Online{% endif %}</option>
           <option value="patrolling" {% if drone and drone.status == 'patrolling' %}selected{% endif %}>{% if lang == 'ar' %}دورية{% elif lang == 'fr' %}Patrouille{% else %}Patrolling{% endif %}</option>
           <option value="charging" {% if drone and drone.status == 'charging' %}selected{% endif %}>{% if lang == 'ar' %}يشحن{% elif lang == 'fr' %}En charge{% else %}Charging{% endif %}</option>
@@ -39,6 +39,7 @@
         <label>{% if lang == 'ar' %}ملاحظات{% elif lang == 'fr' %}Notes{% else %}Notes{% endif %}</label>
         <textarea name="notes" class="form-input" rows="3" placeholder="{% if lang == 'ar' %}ملاحظات اختيارية{% elif lang == 'fr' %}Notes facultatives{% else %}Optional notes{% endif %}">{{ drone.notes|default:'' }}</textarea>
       </div>
+      {% endif %}
       <div class="form-actions">
         <a href="{% url 'core:drone_list' %}" class="btn btn-outline">{% if lang == 'ar' %}الغاء{% elif lang == 'fr' %}Annuler{% else %}Cancel{% endif %}</a>
         <button type="submit" class="btn btn-primary">

@@ -97,15 +97,19 @@
       </div>
     </div>
 
-    <!-- Simulated video feed with bounding boxes -->
+    <!-- Live video feed with bounding boxes -->
     <div class="stream-viewport" id="stream-vp">
       <div class="stream-scanline"></div>
       <div class="stream-noise"></div>
+      {% if selected.stream_url %}
+      <img id="stream-img" src="{{ selected.stream_url }}" alt="{{ selected.name }} live stream"
+           style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000;" />
+      {% else %}
       <div class="stream-placeholder">
         <i class="fa fa-satellite-dish"></i>
-        <p>{% if lang == 'ar' %}جاري الاتصال ببث {{ selected.name }}...{% elif lang == 'fr' %}Connexion au flux de {{ selected.name }}...{% else %}Connecting to {{ selected.name }} feed...{% endif %}</p>
-        <div class="stream-loading-bar"><div class="stream-loading-fill"><img src="with MySQL\he4a howa\virtual env\dronesec-main\media\chat_attachments\0c1f5339393afcd112464521ac086196.jpg"></div></div>
+        <p>{% if lang == 'ar' %}لم يتم تكوين رابط بث لـ {{ selected.name }}.{% elif lang == 'fr' %}Aucune URL de flux configuree pour {{ selected.name }}.{% else %}No stream URL configured for {{ selected.name }}.{% endif %}</p>
       </div>
+      {% endif %}
       <!-- Bounding boxes (simulated) -->
       <div class="bbox bbox-person" id="bbox1" style="display:none">
         <span class="bbox-label"><i class="fa fa-person"></i> {% if lang == 'ar' %}شخص{% elif lang == 'fr' %}Personne{% else %}Person{% endif %} 97%</span>
