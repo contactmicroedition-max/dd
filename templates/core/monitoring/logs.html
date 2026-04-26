@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block title %}{% if request.user.language == 'ar' %}سجلات المراقبة{% elif request.user.language == 'fr' %}Journaux de surveillance{% else %}Monitoring Logs{% endif %}{% endblock %}
+{% block page_title %}
+{% with lang=request.user.language|default:'en' %}
+<i class="fa fa-clipboard-list"></i> {% if lang == 'ar' %}سجلات المراقبة{% elif lang == 'fr' %}Journaux de surveillance{% else %}Monitoring Logs{% endif %}
+{% endwith %}
+{% endblock %}
+{% block content %}
+{% with lang=request.user.language|default:'en' %}
+<div class="table-card glass">
+  <div class="table-header"><i class="fa fa-clock-rotate-left"></i> {% if lang == 'ar' %}اخر سجلات المراقبة{% elif lang == 'fr' %}Derniers journaux{% else %}Recent Monitoring Events{% endif %}</div>
+  <div style="overflow-x: auto;">
+    <table class="ds-table">
+      <thead>
+        <tr>
+          <th>{% if lang == 'ar' %}الوقت{% elif lang == 'fr' %}Heure{% else %}Time{% endif %}</th>
+          <th>{% if lang == 'ar' %}الطائرة{% elif lang == 'fr' %}Drone{% else %}Drone{% endif %}</th>
+          <th>{% if lang == 'ar' %}الحدث{% elif lang == 'fr' %}Evenement{% else %}Event{% endif %}</th>
+          <th>{% if lang == 'ar' %}التفاصيل{% elif lang == 'fr' %}Details{% else %}Details{% endif %}</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for item in logs %}
+        <tr>
+          <td>{{ item.created_at|date:'Y-m-d H:i:s' }}</td>
+          <td>{{ item.drone.name }}</td>
+          <td>{{ item.event }}</td>
+          <td>{{ item.details|default:'-' }}</td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="4" style="text-align:center; color: var(--text-muted);">{% if lang == 'ar' %}لا توجد سجلات مراقبة حاليا.{% elif lang == 'fr' %}Aucun journal de surveillance pour le moment.{% else %}No monitoring logs yet.{% endif %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endwith %}
+{% endblock %}

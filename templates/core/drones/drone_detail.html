@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+{% block title %}{% if request.user.language == 'ar' %}الطائرة {{ drone.name }}{% elif request.user.language == 'fr' %}Drone {{ drone.name }}{% else %}{{ drone.name }}{% endif %}{% endblock %}
+{% block page_title %}<i class="fa fa-helicopter"></i> {{ drone.name }}{% endblock %}
+{% block content %}
+{% with lang=request.user.language|default:'en' %}
+
+<div class="page-actions-bar">
+  <a href="{% url 'core:drone_list' %}" class="btn btn-outline btn-sm" aria-label="{% if lang == 'ar' %}العودة الى كل الطائرات{% elif lang == 'fr' %}Retour a tous les drones{% else %}Back to All Drones{% endif %}" title="{% if lang == 'ar' %}العودة الى كل الطائرات{% elif lang == 'fr' %}Retour a tous les drones{% else %}Back to All Drones{% endif %}">
+    <i class="fa {% if lang == 'ar' %}fa-arrow-right{% else %}fa-arrow-left{% endif %}"></i>
+  </a>
+</div>
+
+<div class="detail-grid">
+  <!-- Telemetry Card -->
+  <div class="glass drone-telemetry-card">
+    <div class="drone-hero status-{{ drone.status }}">
+      <div class="drone-icon-xl"><i class="fa fa-helicopter"></i></div>
+      <div>
+        <h2>{{ drone.name }}</h2>
+        <div class="text-muted">{{ drone.serial_number }}</div>
+        <span class="badge badge-{{ drone.status }} mt-1">{% if drone.status == 'online' %}{% if lang == 'ar' %}متصل{% elif lang == 'fr' %}En ligne{% else %}Online{% endif %}{% elif drone.status == 'offline' %}{% if lang == 'ar' %}غير متصل{% elif lang == 'fr' %}Hors ligne{% else %}Offline{% endif %}{% elif drone.status == 'charging' %}{% if lang == 'ar' %}يشحن{% elif lang == 'fr' %}En charge{% else %}Charging{% endif %}{% elif drone.status == 'maintenance' %}{% if lang == 'ar' %}صيانة{% elif lang == 'fr' %}Maintenance{% else %}Maintenance{% endif %}{% else %}{% if lang == 'ar' %}دورية{% elif lang == 'fr' %}Patrouille{% else %}Patrolling{% endif %}{% endif %}</span>
+      </div>
+    </div>
+
+    <div class="telemetry-grid" id="telemetry-{{ drone.pk }}">
+      <div class="tel-item">
+        <i class="fa fa-battery-three-quarters battery-{{ drone.battery_color }}"></i>
+        <span id="tel-battery">{{ drone.battery }}%</span>
+        <label>{% if lang == 'ar' %}البطارية{% elif lang == 'fr' %}Batterie{% else %}Battery{% endif %}</label>
+      </div>
+      <div class="tel-item">
+        <i class="fa fa-mountain"></i>
+        <span id="tel-altitude">{{ drone.altitude|floatformat:1 }}m</span>
+        <label>{% if lang == 'ar' %}الارتفاع{% elif lang == 'fr' %}Altitude{% else %}Altitude{% endif %}</label>
+      </div>
+      <div class="tel-item">
+        <i class="fa fa-gauge-high"></i>
+        <span id="tel-speed">{{ drone.speed|floatformat:1 }}</span>
+        <label>km/h</label>
+      </div>
+      <div class="tel-item">
+        <i class="fa fa-location-crosshairs"></i>
+        <span id="tel-lat">{{ drone.latitude|floatformat:4 }}</span>
+        <label>{% if lang == 'ar' %}خط العرض{% elif lang == 'fr' %}Latitude{% else %}Latitude{% endif %}</label>
+      </div>
+      <div class="tel-item">
+        <i class="fa fa-location-crosshairs"></i>
+        <span id="tel-lng">{{ drone.longitude|floatformat:4 }}</span>
+        <label>{% if lang == 'ar' %}خط الطول{% elif lang == 'fr' %}Longitude{% else %}Longitude{% endif %}</label>
+      </div>
+      <div class="tel-item">
+        <i class="fa fa-video {% if drone.camera_active %}text-blue{% else %}text-gray{% endif %}"></i>
+        <span>{% if drone.camera_active %}{% if lang == 'ar' %}نشطة{% elif lang == 'fr' %}Active{% else %}Active{% endif %}{% else %}{% if lang == 'ar' %}غير نشطة{% elif lang == 'fr' %}Inactive{% else %}Inactive{% endif %}{% endif %}</span>
+        <label>{% if lang == 'ar' %}الكاميرا{% elif lang == 'fr' %}Camera{% else %}Camera{% endif %}</label>
+      </div>
+    </div>
+
+    <div class="battery-bar-full mt-2">
+      <div class="battery-fill battery-{{ drone.battery_color }}" id="battery-bar" style="width:{{ drone.battery }}%"></div>
+    </div>
+
+    <div class="drone-detail-actions">
+      {% if drone.status == 'online' or drone.status == 'patrolling' %}
+      <a href="{% url 'core:live_stream_drone' drone.pk %}" class="btn btn-primary">
+        <i class="fa fa-video"></i> {% if lang == 'ar' %}بث مباشر{% elif lang == 'fr' %}Flux en direct{% else %}Live Stream{% endif %}
+      </a>
+      {% else %}
+      <button type="button" class="btn btn-primary btn-disabled" disabled aria-disabled="true" title="{% if lang == 'ar' %}غير متاح عند التوقف او الشحن او الصيانة{% elif lang == 'fr' %}Indisponible hors ligne, en charge ou en maintenance{% else %}Unavailable while offline, charging, or in maintenance{% endif %}">
+        <i class="fa fa-video"></i> {% if lang == 'ar' %}بث مباشر{% elif lang == 'fr' %}Flux en direct{% else %}Live Stream{% endif %}
+      </button>
+      {% endif %}
+      {% if user.is_admin %}
+      {% if drone.status == 'offline' or drone.status == 'online' or drone.status == 'patrolling' %}
+      <form method="post" action="{% url 'core:drone_control' drone.pk %}" class="drone-control-form">
+        {% csrf_token %}
+        {% if drone.status == 'offline' %}
+        <input type="hidden" name="action" value="resume" />
+        <button type="submit" class="btn btn-blue">
+          <i class="fa fa-play"></i> {% if lang == 'ar' %}السماح بالتشغيل{% elif lang == 'fr' %}Autoriser le fonctionnement{% else %}Allow Operation{% endif %}
+        </button>
+        {% else %}
+        <input type="hidden" name="action" value="stop" />
+        <button type="button" class="btn btn-danger js-drone-stop-trigger" data-drone-name="{{ drone.name|escapejs }}">
+          <i class="fa fa-stop"></i> {% if lang == 'ar' %}ايقاف الطائرة{% elif lang == 'fr' %}Arreter le drone{% else %}Stop Drone{% endif %}
+        </button>
+        {% endif %}
+      </form>
+      {% endif %}
+      <a href="{% url 'core:drone_edit' drone.pk %}" class="btn btn-outline">
+        <i class="fa fa-pen"></i> {% if lang == 'ar' %}تعديل{% elif lang == 'fr' %}Modifier{% else %}Edit{% endif %}
+      </a>
+      <a href="{% url 'core:drone_delete' drone.pk %}" class="btn btn-danger"
+         onclick="return confirm('{% if lang == 'ar' %}حذف {{ drone.name }}؟{% elif lang == 'fr' %}Supprimer {{ drone.name }} ?{% else %}Delete {{ drone.name }}?{% endif %}')">
+        <i class="fa fa-trash"></i>
+      </a>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Recent Alerts -->
+  <div class="glass drone-alerts-card">
+    <div class="widget-header">
+      <span><i class="fa fa-bell"></i> {% if lang == 'ar' %}احدث التنبيهات{% elif lang == 'fr' %}Alertes recentes{% else %}Recent Alerts{% endif %}</span>
+      <a href="{% url 'core:alert_list' %}" class="btn btn-xs btn-outline">{% if lang == 'ar' %}كل التنبيهات{% elif lang == 'fr' %}Toutes les alertes{% else %}All Alerts{% endif %}</a>
+    </div>
+    {% for alert in recent_alerts %}
+    <a href="{% url 'core:alert_detail' alert.pk %}" class="alert-row severity-{{ alert.severity }}">
+      <div class="alert-sev-bar sev-{{ alert.severity }}"></div>
+      <div class="alert-row-body">
+        <div class="alert-row-title">{{ alert.title }}</div>
+        <div class="alert-row-meta">
+          <span class="badge-sev sev-{{ alert.severity }}">{% if alert.severity == 'low' %}{% if lang == 'ar' %}منخفض{% elif lang == 'fr' %}FAIBLE{% else %}LOW{% endif %}{% elif alert.severity == 'medium' %}{% if lang == 'ar' %}متوسط{% elif lang == 'fr' %}MOYENNE{% else %}MEDIUM{% endif %}{% elif alert.severity == 'high' %}{% if lang == 'ar' %}عال{% elif lang == 'fr' %}ELEVEE{% else %}HIGH{% endif %}{% else %}{% if lang == 'ar' %}حرج{% elif lang == 'fr' %}CRITIQUE{% else %}CRITICAL{% endif %}{% endif %}</span>
+          <span class="text-muted">{% if lang == 'ar' %}منذ {{ alert.created_at|timesince }}{% elif lang == 'fr' %}il y a {{ alert.created_at|timesince }}{% else %}{{ alert.created_at|timesince }} ago{% endif %}</span>
+        </div>
+      </div>
+    </a>
+    {% empty %}
+    <div class="empty-state-sm"><i class="fa fa-check-circle text-green"></i> {% if lang == 'ar' %}لا توجد تنبيهات لهذه الطائرة{% elif lang == 'fr' %}Aucune alerte pour ce drone{% else %}No alerts for this drone{% endif %}</div>
+    {% endfor %}
+  </div>
+</div>
+
+{% include 'core/drones/partials/stop_confirm_modal.html' %}
+
+{% endwith %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Poll live telemetry every 5 seconds
+{% if drone.status != 'offline' %}
+setInterval(() => {
+  fetch("{% url 'core:drone_status_api' drone.pk %}")
+    .then(r => r.json())
+    .then(d => {
+      document.getElementById('tel-battery').textContent = d.battery + '%';
+      document.getElementById('tel-altitude').textContent = d.altitude + 'm';
+      document.getElementById('tel-speed').textContent = d.speed;
+      document.getElementById('tel-lat').textContent = d.latitude.toFixed(4);
+      document.getElementById('tel-lng').textContent = d.longitude.toFixed(4);
+      document.getElementById('battery-bar').style.width = d.battery + '%';
+    });
+}, 5000);
+{% endif %}
+</script>
+{% endblock %}

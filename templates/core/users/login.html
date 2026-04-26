@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+{% block title %}{% if request.session.preferred_language == 'ar' %}تسجيل الدخول{% elif request.session.preferred_language == 'fr' %}Connexion{% else %}Login{% endif %}{% endblock %}
+{% block auth_content %}
+{% with lang=request.session.preferred_language|default:'en' %}
+<div class="auth-page">
+  <div class="auth-bg">
+    <div class="auth-grid"></div>
+    <div class="auth-orb orb1"></div>
+    <div class="auth-orb orb2"></div>
+  </div>
+  <div class="auth-card glass">
+    <div class="auth-logo">
+      <a href="{% url 'core:home' %}" class="auth-logo-link" title="{% if lang == 'ar' %}العودة للصفحة الرئيسية{% elif lang == 'fr' %}Retour a l'accueil{% else %}Back to Home{% endif %}">
+        <div class="logo-icon-lg"><i class="fa fa-shield-halved"></i></div>
+        <h1>Drone<span class="neon">Sec</span></h1>
+        <p class="auth-sub">{% if lang == 'ar' %}مراقبة أمنية بالطائرات بدون طيار{% elif lang == 'fr' %}Surveillance de securite par drones{% else %}Drone-Based Security Monitoring{% endif %}</p>
+      </a>
+    </div>
+
+    <form method="post" id="login-form">
+      {% csrf_token %}
+      <input type="hidden" name="recaptcha_token" id="recaptcha_token" />
+      {% if form.non_field_errors %}
+        <div class="form-error-banner"><i class="fa fa-exclamation-circle"></i> {{ form.non_field_errors.0 }}</div>
+      {% endif %}
+      <div class="form-error-banner" id="recaptcha-client-error" style="display:none;"></div>
+      <div class="form-group">
+        <label><i class="fa fa-user"></i> {% if lang == 'ar' %}اسم المستخدم{% elif lang == 'fr' %}Nom d'utilisateur{% else %}Username{% endif %}</label>
+        {{ form.username }}
+      </div>
+      <div class="form-group">
+        <label><i class="fa fa-lock"></i> {% if lang == 'ar' %}كلمة المرور{% elif lang == 'fr' %}Mot de passe{% else %}Password{% endif %}</label>
+        <div class="input-eye-wrap">
+          {{ form.password }}
+          <button type="button" class="eye-btn" onclick="togglePwd()">
+            <i class="fa fa-eye" id="eye-icon"></i>
+          </button>
+        </div>
+      </div>
+      <div class="form-row-between">
+        <label class="checkbox-label">{{ form.remember_me }} {% if lang == 'ar' %}تذكرني{% elif lang == 'fr' %}Se souvenir de moi{% else %}Remember me{% endif %}</label>
+        <a href="{% url 'core:password_reset' %}" class="link-muted">{% if lang == 'ar' %}هل نسيت كلمة المرور؟{% elif lang == 'fr' %}Mot de passe oublie ?{% else %}Forgot password?{% endif %}</a>
+      </div>
+
+      <!-- reCAPTCHA Widget -->
+      <div class="g-recaptcha" data-sitekey="{{ recaptcha_key }}" data-callback="onRecaptchaSuccess" data-expired-callback="onRecaptchaExpired" style="margin: 16px 0;"></div>
+
+      <button type="submit" class="btn btn-primary btn-full">
+        <i class="fa fa-right-to-bracket"></i> {% if lang == 'ar' %}تسجيل الدخول{% elif lang == 'fr' %}Se connecter{% else %}Sign In{% endif %}
+      </button>
+    </form>
+
+    <div class="auth-divider"><span>{% if lang == 'ar' %}او{% elif lang == 'fr' %}ou{% else %}or{% endif %}</span></div>
+
+    <a href="{% url 'core:google_login' %}" class="btn btn-google">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+        <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908C16.658 13.492 17.64 11.184 17.64 9.2z" fill="#4285F4"/>
+        <path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#34A853"/>
+        <path d="M3.964 10.707A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.707V4.961H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.039l3.007-2.332z" fill="#FBBC05"/>
+        <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.961L3.964 6.293C4.672 4.166 6.656 3.58 9 3.58z" fill="#EA4335"/>
+      </svg>
+      {% if lang == 'ar' %}المتابعة باستخدام Google{% elif lang == 'fr' %}Continuer avec Google{% else %}Continue with Google{% endif %}
+    </a>
+    <p class="auth-footer">{% if lang == 'ar' %}لا يوجد حساب؟{% elif lang == 'fr' %}Pas de compte ?{% else %}No account?{% endif %} <a href="{% url 'core:register' %}">{% if lang == 'ar' %}طلب وصول{% elif lang == 'fr' %}Demander l'acces{% else %}Request Access{% endif %}</a></p>
+  </div>
+</div>
+
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+<script>
+function togglePwd() {
+  const f = document.getElementById('id_password');
+  const i = document.getElementById('eye-icon');
+  if (f.type === 'password') { f.type = 'text'; i.classList.replace('fa-eye','fa-eye-slash'); }
+  else { f.type = 'password'; i.classList.replace('fa-eye-slash','fa-eye'); }
+}
+
+function onRecaptchaSuccess(token) {
+  document.getElementById('recaptcha_token').value = token;
+}
+
+function onRecaptchaExpired() {
+  document.getElementById('recaptcha_token').value = '';
+}
+
+document.getElementById('login-form').addEventListener('submit', function(e) {
+  const errorBox = document.getElementById('recaptcha-client-error');
+  if (errorBox) {
+    errorBox.style.display = 'none';
+    errorBox.textContent = '';
+  }
+
+  const token = document.getElementById('recaptcha_token').value.trim();
+  if (!token) {
+    e.preventDefault();
+    if (errorBox) {
+      errorBox.innerHTML = '<i class="fa fa-exclamation-circle"></i> {% if lang == "ar" %}يرجى اكمال reCAPTCHA قبل تسجيل الدخول.{% elif lang == "fr" %}Veuillez completer le reCAPTCHA avant de vous connecter.{% else %}Please complete reCAPTCHA before signing in.{% endif %}';
+      errorBox.style.display = 'block';
+    }
+  }
+});
+</script>
+{% endwith %}
+{% endblock %}

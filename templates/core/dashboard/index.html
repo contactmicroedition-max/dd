@@ -1,0 +1,213 @@
+{% extends 'base.html' %}
+{% block title %}{% if request.user.language == 'ar' %}لوحة التحكم{% elif request.user.language == 'fr' %}Tableau de bord{% else %}Dashboard{% endif %}{% endblock %}
+{% block page_title %}
+{% with lang=request.user.language|default:'en' %}
+<i class="fa fa-gauge-high"></i> {% if lang == 'ar' %}مركز التحكم{% elif lang == 'fr' %}Centre de commande{% else %}Command Center{% endif %}
+{% endwith %}
+{% endblock %}
+{% block content %}
+{% with lang=request.user.language|default:'en' %}
+
+<!-- ── KPI Cards ── -->
+<div class="kpi-grid">
+  <div class="kpi-card glass kpi-blue">
+    <div class="kpi-icon"><i class="fa fa-helicopter"></i></div>
+    <div class="kpi-body">
+      <div class="kpi-value" data-count="{{ drones_online }}">0</div>
+      <div class="kpi-label">{% if lang == 'ar' %}الطائرات المتصلة{% elif lang == 'fr' %}Drones en ligne{% else %}Drones Online{% endif %}</div>
+    </div>
+    <div class="kpi-sub">{% if lang == 'ar' %}{{ total_drones }} اجمالي الاسطول{% elif lang == 'fr' %}{{ total_drones }} flotte totale{% else %}{{ total_drones }} total fleet{% endif %}</div>
+  </div>
+  <div class="kpi-card glass kpi-red">
+    <div class="kpi-icon"><i class="fa fa-triangle-exclamation"></i></div>
+    <div class="kpi-body">
+      <div class="kpi-value" data-count="{{ critical_alerts }}">0</div>
+      <div class="kpi-label">{% if lang == 'ar' %}تنبيهات حرجة{% elif lang == 'fr' %}Alertes critiques{% else %}Critical Alerts{% endif %}</div>
+    </div>
+    <div class="kpi-sub">{% if lang == 'ar' %}{{ unresolved_alerts }} غير محلولة{% elif lang == 'fr' %}{{ unresolved_alerts }} non resolues{% else %}{{ unresolved_alerts }} unresolved{% endif %}</div>
+  </div>
+  <div class="kpi-card glass kpi-green">
+    <div class="kpi-icon"><i class="fa fa-video"></i></div>
+    <div class="kpi-body">
+      <div class="kpi-value" data-count="{{ drones_online }}">0</div>
+      <div class="kpi-label">{% if lang == 'ar' %}بثوث مباشرة{% elif lang == 'fr' %}Flux en direct{% else %}Live Streams{% endif %}</div>
+    </div>
+    <div class="kpi-sub">{% if lang == 'ar' %}كاميرات نشطة{% elif lang == 'fr' %}Cameras actives{% else %}Active cameras{% endif %}</div>
+  </div>
+  <div class="kpi-card glass kpi-yellow">
+    <div class="kpi-icon"><i class="fa fa-bell"></i></div>
+    <div class="kpi-body">
+      <div class="kpi-value" data-count="{{ total_alerts }}">0</div>
+      <div class="kpi-label">{% if lang == 'ar' %}اجمالي التنبيهات{% elif lang == 'fr' %}Total des alertes{% else %}Total Alerts{% endif %}</div>
+    </div>
+    <div class="kpi-sub">{% if lang == 'ar' %}{{ unread_count }} غير مقروءة{% elif lang == 'fr' %}{{ unread_count }} non lues{% else %}{{ unread_count }} unread{% endif %}</div>
+  </div>
+  {% if user.is_admin %}
+  <div class="kpi-card glass kpi-purple">
+    <div class="kpi-icon"><i class="fa fa-users"></i></div>
+    <div class="kpi-body">
+      <div class="kpi-value" data-count="{{ total_agents }}">0</div>
+      <div class="kpi-label">{% if lang == 'ar' %}وكلاء نشطون{% elif lang == 'fr' %}Agents actifs{% else %}Active Agents{% endif %}</div>
+    </div>
+    <div class="kpi-sub {% if pending_agents %}text-warn{% endif %}">
+      {% if pending_agents %}
+        {% if lang == 'ar' %}{{ pending_agents }} بانتظار الموافقة{% elif lang == 'fr' %}{{ pending_agents }} en attente d'approbation{% else %}{{ pending_agents }} pending approval{% endif %}
+      {% else %}
+        {% if lang == 'ar' %}الكل معتمد{% elif lang == 'fr' %}Tous approuves{% else %}All approved{% endif %}
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- ── Main Grid ── -->
+<div class="dash-grid">
+
+  <!-- Drone Fleet Status -->
+  <div class="dash-widget glass widget-drones">
+    <div class="widget-header">
+      <span><i class="fa fa-helicopter"></i> {% if lang == 'ar' %}اسطول الطائرات{% elif lang == 'fr' %}Flotte de drones{% else %}Drone Fleet{% endif %}</span>
+      <a href="{% url 'core:drone_list' %}" class="btn btn-xs btn-outline">{% if lang == 'ar' %}عرض الكل{% elif lang == 'fr' %}Voir tout{% else %}View All{% endif %}</a>
+    </div>
+    <div class="drone-cards">
+      {% for drone in drones %}
+      <a href="{% url 'core:drone_detail' drone.pk %}" class="drone-mini-card status-{{ drone.status }}">
+        <div class="drone-mini-top">
+          <div class="drone-mini-name">{{ drone.name }}</div>
+          <span class="badge badge-{{ drone.status }}">{% if drone.status == 'online' %}{% if lang == 'ar' %}متصل{% elif lang == 'fr' %}EN LIGNE{% else %}ONLINE{% endif %}{% elif drone.status == 'offline' %}{% if lang == 'ar' %}غير متصل{% elif lang == 'fr' %}HORS LIGNE{% else %}OFFLINE{% endif %}{% elif drone.status == 'charging' %}{% if lang == 'ar' %}يشحن{% elif lang == 'fr' %}EN CHARGE{% else %}CHARGING{% endif %}{% elif drone.status == 'maintenance' %}{% if lang == 'ar' %}صيانة{% elif lang == 'fr' %}MAINTENANCE{% else %}MAINTENANCE{% endif %}{% else %}{% if lang == 'ar' %}دورية{% elif lang == 'fr' %}PATROUILLE{% else %}PATROLLING{% endif %}{% endif %}</span>
+        </div>
+        <div class="drone-mini-stats">
+          <span title="{% if lang == 'ar' %}البطارية{% elif lang == 'fr' %}Batterie{% else %}Battery{% endif %}"><i class="fa fa-battery-three-quarters battery-{{ drone.battery_color }}"></i> {{ drone.battery }}%</span>
+          <span title="{% if lang == 'ar' %}الموقع{% elif lang == 'fr' %}Emplacement{% else %}Location{% endif %}"><i class="fa fa-location-dot"></i> {{ drone.location_name|truncatechars:12 }}</span>
+        </div>
+        <div class="drone-battery-bar">
+          <div class="drone-battery-fill battery-{{ drone.battery_color }}" style="width:{{ drone.battery }}%"></div>
+        </div>
+      </a>
+      {% empty %}
+      <div class="empty-state-sm"><i class="fa fa-helicopter"></i> {% if lang == 'ar' %}لا توجد طائرات مهيأة{% elif lang == 'fr' %}Aucun drone configure{% else %}No drones configured{% endif %}</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Live Alerts Feed -->
+  <div class="dash-widget glass widget-alerts">
+    <div class="widget-header">
+      <span><i class="fa fa-bell"></i> {% if lang == 'ar' %}تنبيهات مباشرة{% elif lang == 'fr' %}Alertes en direct{% else %}Live Alerts{% endif %}</span>
+      <a href="{% url 'core:alert_list' %}" class="btn btn-xs btn-outline">{% if lang == 'ar' %}عرض الكل{% elif lang == 'fr' %}Voir tout{% else %}View All{% endif %}</a>
+    </div>
+    <div class="alert-feed" id="live-alert-feed">
+      {% for alert in recent_alerts %}
+      <a href="{% url 'core:alert_detail' alert.pk %}" class="alert-row severity-{{ alert.severity }} {% if not alert.is_read %}unread{% endif %}">
+        <div class="alert-sev-bar sev-{{ alert.severity }}"></div>
+        <div class="alert-row-body">
+          <div class="alert-row-title">{{ alert.title }}</div>
+          <div class="alert-row-meta">
+            <span class="badge-sev sev-{{ alert.severity }}">{% if alert.severity == 'low' %}{% if lang == 'ar' %}منخفض{% elif lang == 'fr' %}FAIBLE{% else %}LOW{% endif %}{% elif alert.severity == 'medium' %}{% if lang == 'ar' %}متوسط{% elif lang == 'fr' %}MOYENNE{% else %}MEDIUM{% endif %}{% elif alert.severity == 'high' %}{% if lang == 'ar' %}عال{% elif lang == 'fr' %}ELEVEE{% else %}HIGH{% endif %}{% else %}{% if lang == 'ar' %}حرج{% elif lang == 'fr' %}CRITIQUE{% else %}CRITICAL{% endif %}{% endif %}</span>
+            <span class="text-muted">{% if alert.drone %}{{ alert.drone.name }}{% else %}{% if lang == 'ar' %}النظام{% elif lang == 'fr' %}Systeme{% else %}System{% endif %}{% endif %}</span>
+            <span class="text-muted">{% if lang == 'ar' %}منذ {{ alert.created_at|timesince }}{% elif lang == 'fr' %}il y a {{ alert.created_at|timesince }}{% else %}{{ alert.created_at|timesince }} ago{% endif %}</span>
+          </div>
+        </div>
+        {% if not alert.is_read %}<span class="unread-dot"></span>{% endif %}
+      </a>
+      {% empty %}
+      <div class="empty-state-sm"><i class="fa fa-check-circle text-green"></i> {% if lang == 'ar' %}لا توجد تنبيهات نشطة{% elif lang == 'fr' %}Aucune alerte active{% else %}No active alerts{% endif %}</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Simulated Map -->
+  <div class="dash-widget glass widget-map">
+    <div class="widget-header">
+      <span><i class="fa fa-map-location-dot"></i> {% if lang == 'ar' %}خريطة العمليات{% elif lang == 'fr' %}Carte operationnelle{% else %}Operational Map{% endif %}</span>
+      <span class="badge badge-online">{% if lang == 'ar' %}مباشر{% elif lang == 'fr' %}DIRECT{% else %}LIVE{% endif %}</span>
+    </div>
+    <div class="map-sim" id="sim-map">
+      <div class="map-grid-overlay"></div>
+      <div class="map-label">{% if lang == 'ar' %}تونس - منطقة العمليات ألفا{% elif lang == 'fr' %}Tunis - Zone operationnelle Alpha{% else %}Tunis - Operational Zone Alpha{% endif %}</div>
+      {% for drone in drones %}
+      {% if drone.status != 'offline' %}
+      <div class="map-drone-pin status-{{ drone.status }}"
+           style="left:{{ forloop.counter|add:10 }}%;top:{{ forloop.counter|add:20 }}%"
+           title="{{ drone.name }} - {% if drone.status == 'online' %}{% if lang == 'ar' %}متصل{% elif lang == 'fr' %}en ligne{% else %}online{% endif %}{% elif drone.status == 'offline' %}{% if lang == 'ar' %}غير متصل{% elif lang == 'fr' %}hors ligne{% else %}offline{% endif %}{% elif drone.status == 'charging' %}{% if lang == 'ar' %}يشحن{% elif lang == 'fr' %}en charge{% else %}charging{% endif %}{% elif drone.status == 'maintenance' %}{% if lang == 'ar' %}صيانة{% elif lang == 'fr' %}maintenance{% else %}maintenance{% endif %}{% else %}{% if lang == 'ar' %}دورية{% elif lang == 'fr' %}patrouille{% else %}patrolling{% endif %}{% endif %}">
+        <i class="fa fa-helicopter"></i>
+        <span class="map-pin-label">{{ drone.name }}</span>
+      </div>
+      {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- System Status -->
+  <div class="dash-widget glass widget-status">
+    <div class="widget-header"><span><i class="fa fa-microchip"></i> {% if lang == 'ar' %}حالة النظام{% elif lang == 'fr' %}Etat du systeme{% else %}System Status{% endif %}</span></div>
+    <div class="sys-status-list">
+      <div class="sys-item">
+        <span><i class="fa fa-circle text-green"></i> {% if lang == 'ar' %}محرك كشف الذكاء الاصطناعي{% elif lang == 'fr' %}Moteur de detection IA{% else %}AI Detection Engine{% endif %}</span>
+        <span class="badge badge-online">{% if lang == 'ar' %}متصل{% elif lang == 'fr' %}EN LIGNE{% else %}ONLINE{% endif %}</span>
+      </div>
+      <div class="sys-item">
+        <span><i class="fa fa-circle text-green"></i> {% if lang == 'ar' %}التعرف على الوجوه{% elif lang == 'fr' %}Reconnaissance faciale{% else %}Face Recognition{% endif %}</span>
+        <span class="badge badge-online">{% if lang == 'ar' %}متصل{% elif lang == 'fr' %}EN LIGNE{% else %}ONLINE{% endif %}</span>
+      </div>
+      <div class="sys-item">
+        <span><i class="fa fa-circle {% if drones_online %}text-green{% else %}text-gray{% endif %}"></i> {% if lang == 'ar' %}البث المباشر{% elif lang == 'fr' %}Streaming en direct{% else %}Live Streaming{% endif %}</span>
+        <span class="badge badge-{% if drones_online %}online{% else %}offline{% endif %}">{% if drones_online %}{% if lang == 'ar' %}نشط{% elif lang == 'fr' %}ACTIF{% else %}ACTIVE{% endif %}{% else %}{% if lang == 'ar' %}خامل{% elif lang == 'fr' %}INACTIF{% else %}IDLE{% endif %}{% endif %}</span>
+      </div>
+      <div class="sys-item">
+        <span><i class="fa fa-circle text-green"></i> {% if lang == 'ar' %}نظام التنبيهات{% elif lang == 'fr' %}Systeme d'alertes{% else %}Alert System{% endif %}</span>
+        <span class="badge badge-online">{% if lang == 'ar' %}متصل{% elif lang == 'fr' %}EN LIGNE{% else %}ONLINE{% endif %}</span>
+      </div>
+      <div class="sys-item">
+        <span><i class="fa fa-circle text-green"></i> {% if lang == 'ar' %}قاعدة البيانات{% elif lang == 'fr' %}Base de donnees{% else %}Database{% endif %}</span>
+        <span class="badge badge-online">{% if lang == 'ar' %}سليمة{% elif lang == 'fr' %}SAINE{% else %}HEALTHY{% endif %}</span>
+      </div>
+    </div>
+    <div class="sys-time">
+      <i class="fa fa-clock"></i> <span id="sys-clock">--:--:--</span> &nbsp; {{ now|date:"d M Y" }}
+    </div>
+  </div>
+
+</div>
+
+{% if user.is_admin and pending_agents %}
+<div class="banner-warn glass">
+  <i class="fa fa-user-clock"></i>
+  <strong>
+    {% if lang == 'ar' %}
+      {{ pending_agents }} وكيل بانتظار الموافقة.
+    {% elif lang == 'fr' %}
+      {{ pending_agents }} agent{{ pending_agents|pluralize }} en attente d'approbation.
+    {% else %}
+      {{ pending_agents }} agent{{ pending_agents|pluralize }} awaiting approval.
+    {% endif %}
+  </strong>
+  <a href="{% url 'core:pending_agents' %}" class="btn btn-sm btn-warning">{% if lang == 'ar' %}مراجعة الآن{% elif lang == 'fr' %}Verifier maintenant{% else %}Review Now{% endif %}</a>
+</div>
+{% endif %}
+
+{% endwith %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Live clock
+function updateClock() {
+  const el = document.getElementById('sys-clock');
+  if (el) el.textContent = new Date().toLocaleTimeString();
+}
+setInterval(updateClock, 1000); updateClock();
+
+// KPI counter animation
+document.querySelectorAll('.kpi-value[data-count]').forEach(el => {
+  const target = parseInt(el.dataset.count);
+  let n = 0;
+  const step = Math.ceil(target / 30);
+  const t = setInterval(() => {
+    n = Math.min(n + step, target);
+    el.textContent = n;
+    if (n >= target) clearInterval(t);
+  }, 40);
+});
+</script>
+{% endblock %}

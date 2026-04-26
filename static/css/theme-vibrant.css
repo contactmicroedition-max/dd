@@ -1,0 +1,189 @@
+/* ═══════════════════════════════════════════════════════════════
+   DroneSec — Vibrant Neon Theme (CSS Variable Overrides)
+═══════════════════════════════════════════════════════════════ */
+
+:root {
+  --bg-base:       #0a0e27;
+  --bg-surface:    #151a38;
+  --bg-card:       rgba(21, 26, 56, 0.8);
+  --bg-hover:      rgba(99, 102, 241, 0.15);
+
+  --border:        rgba(139, 92, 246, 0.3);
+  --border-hover:  rgba(139, 92, 246, 0.6);
+
+  --blue:          #00d9ff;
+  --blue-dim:      rgba(0, 217, 255, 0.15);
+  --blue-glow:     0 0 30px rgba(0, 217, 255, 0.4);
+
+  --red:           #ff0055;
+  --red-dim:       rgba(255, 0, 85, 0.15);
+  --green:         #00ff88;
+  --green-dim:     rgba(0, 255, 136, 0.15);
+  --yellow:        #ffaa00;
+  --yellow-dim:    rgba(255, 170, 0, 0.15);
+  --orange:        #ff6600;
+  --purple:        #da00ff;
+  --purple-dim:    rgba(218, 0, 255, 0.15);
+
+  --text-primary:  #f0f4f8;
+  --text-secondary:#a0aec0;
+  --text-muted:    #718096;
+
+  --glass-bg:      rgba(21, 26, 56, 0.7);
+  --glass-border:  rgba(139, 92, 246, 0.4);
+  --glass-blur:    blur(20px);
+
+  --shadow:        0 8px 32px rgba(0, 0, 0, 0.5);
+  --shadow-glow:   0 0 40px rgba(0, 217, 255, 0.2);
+}
+
+body::before {
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 10%, rgba(0,217,255,0.1) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 80% 80%, rgba(218,0,255,0.08) 0%, transparent 60%);
+  animation: pulseGlow 8s infinite;
+}
+
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.8; }
+}
+
+a:hover { 
+  color: var(--purple);
+  text-shadow: 0 0 10px var(--purple);
+}
+
+#sidebar {
+  background: var(--bg-surface);
+  border-right-color: var(--border);
+}
+
+.sidebar-logo {
+  background: linear-gradient(135deg, var(--blue), var(--purple));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.logo-icon {
+  background: linear-gradient(135deg, var(--blue), var(--purple));
+  color: white;
+  box-shadow: 0 0 20px var(--blue-glow);
+}
+
+.nav-item.active {
+  background: var(--blue-dim);
+  color: var(--blue);
+  border-color: var(--blue);
+  box-shadow: 0 0 20px var(--blue-glow);
+}
+
+.topbar {
+  background: rgba(5, 10, 20, 0.9);
+}
+
+/* Vibrant buttons */
+.btn-primary {
+  background: linear-gradient(135deg, var(--blue), var(--purple));
+  color: white;
+  border: 1px solid var(--blue);
+}
+
+.btn-primary:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 0 30px var(--blue-glow), 0 0 20px rgba(218, 0, 255, 0.4);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--blue);
+  border: 1px solid var(--blue);
+}
+
+.btn-secondary:hover {
+  background: var(--blue-dim);
+  box-shadow: 0 0 20px var(--blue-glow);
+}
+
+/* Form inputs with vibrant border */
+.form-input {
+  background: rgba(21, 26, 56, 0.9);
+  border: 1px solid var(--border);
+}
+
+.form-input:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 20px rgba(0, 217, 255, 0.3), inset 0 0 10px rgba(0, 217, 255, 0.1);
+}
+
+/* Badges with gradient */
+.badge {
+  background: linear-gradient(135deg, var(--blue-dim), var(--purple-dim));
+  color: var(--blue);
+  border: 1px solid var(--border);
+  box-shadow: 0 0 15px rgba(0, 217, 255, 0.2);
+}
+
+/* Scrollbar vibrant */
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(to bottom, var(--blue), var(--purple));
+  box-shadow: 0 0 10px var(--blue-glow);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  box-shadow: 0 0 20px var(--blue-glow);
+}
+
+/* Cards with glow */
+.glass {
+  border: 1px solid var(--glass-border);
+}
+
+.glass:hover {
+  border-color: var(--blue);
+  box-shadow: var(--shadow), 0 0 50px rgba(0, 217, 255, 0.3);
+}
+
+/* Alerts with vibrant colors */
+.alert {
+  border-left: 3px solid;
+  position: relative;
+  overflow: hidden;
+}
+
+.alert::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  animation: shine 2s infinite;
+}
+
+@keyframes shine {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.alert-success { 
+  background: var(--green-dim);
+  border-color: var(--green);
+}
+
+.alert-danger { 
+  background: var(--red-dim);
+  border-color: var(--red);
+}
+
+.alert-warning { 
+  background: var(--yellow-dim);
+  border-color: var(--yellow);
+}
+
+.alert-info { 
+  background: var(--blue-dim);
+  border-color: var(--blue);
+}

@@ -1,0 +1,269 @@
+{% extends 'base.html' %}
+{% block title %}{% if request.user.language == 'ar' %}الاعدادات{% elif request.user.language == 'fr' %}Parametres{% else %}Settings{% endif %}{% endblock %}
+{% block page_title %}
+{% with lang=request.user.language|default:'en' %}
+<i class="fa fa-gear"></i> {% if lang == 'ar' %}اعدادات الحساب{% elif lang == 'fr' %}Parametres du compte{% else %}Account Settings{% endif %}
+{% endwith %}
+{% endblock %}
+{% block content %}
+{% with lang=request.user.language|default:'en' %}
+
+<div class="settings-grid">
+
+  <!-- Profile Update -->
+  <div class="settings-card glass">
+    <div class="settings-card-header">
+      <i class="fa fa-user-circle"></i>
+      <div>
+        <h3>{% if lang == 'ar' %}معلومات الملف الشخصي{% elif lang == 'fr' %}Informations du profil{% else %}Profile Information{% endif %}</h3>
+        <p class="text-muted">{% if lang == 'ar' %}حدّث بياناتك الشخصية وصورتك{% elif lang == 'fr' %}Mettez a jour vos informations et votre avatar{% else %}Update your personal details and avatar{% endif %}</p>
+      </div>
+    </div>
+
+    <div class="profile-avatar-section">
+      {% if request.user.avatar %}
+        <img src="{{ request.user.avatar.url }}" class="profile-avatar-lg" alt="{% if lang == 'ar' %}الصورة الشخصية{% elif lang == 'fr' %}Avatar{% else %}Avatar{% endif %}" />
+      {% else %}
+        <div class="profile-avatar-placeholder-lg">
+          {{ request.user.first_name|first|upper }}{{ request.user.last_name|first|upper }}
+        </div>
+      {% endif %}
+      <div class="avatar-meta">
+        <div class="fw-600">{{ request.user.get_full_name|default:request.user.username }}</div>
+        <div class="text-muted">@{{ request.user.username }}</div>
+        <span class="role-badge role-{{ request.user.role }}">{% if request.user.role == 'admin' %}{% if lang == 'ar' %}مشرف{% elif lang == 'fr' %}Admin{% else %}Admin{% endif %}{% else %}{% if lang == 'ar' %}وكيل{% elif lang == 'fr' %}Agent{% else %}Agent{% endif %}{% endif %}</span>
+      </div>
+    </div>
+
+    <form method="post" action="{% url 'core:update_profile' %}" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div class="form-group">
+        <label>{% if lang == 'ar' %}اسم المستخدم{% elif lang == 'fr' %}Nom d'utilisateur{% else %}Username{% endif %}</label>
+        {{ profile_form.username }}
+        {% if profile_form.username.errors %}
+          <span class="field-error">{{ profile_form.username.errors.0 }}</span>
+        {% endif %}
+      </div>
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label>{% if lang == 'ar' %}الاسم{% elif lang == 'fr' %}Prenom{% else %}First Name{% endif %}</label>
+          {{ profile_form.first_name }}
+          {% if profile_form.first_name.errors %}
+            <span class="field-error">{{ profile_form.first_name.errors.0 }}</span>
+          {% endif %}
+        </div>
+        <div class="form-group">
+          <label>{% if lang == 'ar' %}اللقب{% elif lang == 'fr' %}Nom{% else %}Last Name{% endif %}</label>
+          {{ profile_form.last_name }}
+          {% if profile_form.last_name.errors %}
+            <span class="field-error">{{ profile_form.last_name.errors.0 }}</span>
+          {% endif %}
+        </div>
+      </div>
+      <div class="form-group">
+        <label>{% if lang == 'ar' %}البريد الالكتروني{% elif lang == 'fr' %}Adresse e-mail{% else %}Email Address{% endif %}</label>
+        {{ profile_form.email }}
+        {% if profile_form.email.errors %}
+          <span class="field-error">{{ profile_form.email.errors.0 }}</span>
+        {% endif %}
+      </div>
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label>{% if lang == 'ar' %}الهاتف{% elif lang == 'fr' %}Telephone{% else %}Phone{% endif %}</label>
+          {{ profile_form.phone }}
+          {% if profile_form.phone.errors %}
+            <span class="field-error">{{ profile_form.phone.errors.0 }}</span>
+          {% endif %}
+        </div>
+        <div class="form-group">
+          <label>{% if lang == 'ar' %}القسم{% elif lang == 'fr' %}Departement{% else %}Department{% endif %}</label>
+          {{ profile_form.department }}
+          {% if profile_form.department.errors %}
+            <span class="field-error">{{ profile_form.department.errors.0 }}</span>
+          {% endif %}
+        </div>
+      </div>
+      <div class="form-group">
+        <label>{% if lang == 'ar' %}صورة الملف الشخصي{% elif lang == 'fr' %}Photo de profil{% else %}Profile Photo{% endif %}</label>
+        <div class="file-input-wrapper">
+          {{ profile_form.avatar }}
+          <label for="id_avatar" class="file-input-label">
+            <i class="fa fa-cloud-arrow-up"></i>
+            <span id="file-name-display">{% if lang == 'ar' %}لم يتم اختيار ملف{% elif lang == 'fr' %}Aucun fichier choisi{% else %}No file chosen{% endif %}</span>
+          </label>
+        </div>
+        {% if profile_form.avatar.errors %}
+          <span class="field-error"><i class="fa fa-warning"></i> {{ profile_form.avatar.errors.0 }}</span>
+        {% endif %}
+        <small style="color: var(--text-muted); display: block; margin-top: 6px;">{% if lang == 'ar' %}الحد الاقصى للحجم: 5MB. الصيغ المدعومة: JPG, PNG, GIF, WebP{% elif lang == 'fr' %}Taille maximale: 5 Mo. Formats pris en charge: JPG, PNG, GIF, WebP{% else %}Max file size: 5MB. Supported formats: JPG, PNG, GIF, WebP{% endif %}</small>
+      </div>
+      <script>
+        document.getElementById('id_avatar').addEventListener('change', function(e) {
+          const fileName = e.target.files[0]?.name || '{% if lang == 'ar' %}لم يتم اختيار ملف{% elif lang == 'fr' %}Aucun fichier choisi{% else %}No file chosen{% endif %}';
+          document.getElementById('file-name-display').textContent = fileName;
+        });
+      </script>
+      <div class="form-group">
+        <label>{% if lang == 'ar' %}السمة{% elif lang == 'fr' %}Theme{% else %}Theme{% endif %}</label>
+        {{ profile_form.theme }}
+        {% if profile_form.theme.errors %}
+          <span class="field-error">{{ profile_form.theme.errors.0 }}</span>
+        {% endif %}
+      </div>
+      <div class="form-group">
+        <label>{% if lang == 'ar' %}اللغة{% elif lang == 'fr' %}Langue{% else %}Language{% endif %}</label>
+        {{ profile_form.language }}
+        {% if profile_form.language.errors %}
+          <span class="field-error">{{ profile_form.language.errors.0 }}</span>
+        {% endif %}
+      </div>
+      <button type="submit" class="btn btn-primary">
+        <i class="fa fa-save"></i> {% if lang == 'ar' %}حفظ التغييرات{% elif lang == 'fr' %}Enregistrer{% else %}Save Changes{% endif %}
+      </button>
+    </form>
+  </div>
+
+  <!-- Password Change -->
+  <div class="settings-card glass">
+    <div class="settings-card-header">
+      <i class="fa fa-lock"></i>
+      <div>
+        <h3>{% if lang == 'ar' %}تغيير كلمة المرور{% elif lang == 'fr' %}Changer le mot de passe{% else %}Change Password{% endif %}</h3>
+        <p class="text-muted">{% if lang == 'ar' %}حافظ على امان حسابك{% elif lang == 'fr' %}Assurez la securite de votre compte{% else %}Ensure your account is secure{% endif %}</p>
+      </div>
+    </div>
+
+    <form method="post" action="{% url 'core:change_password' %}">
+      {% csrf_token %}
+      {% if password_form.non_field_errors %}
+        <div class="form-error-banner" style="margin-bottom: 10px;"><i class="fa fa-exclamation-circle"></i> {{ password_form.non_field_errors.0 }}</div>
+      {% endif %}
+      {% if password_form.old_password %}
+      <div class="form-group">
+        <label>{% if lang == 'ar' %}كلمة المرور الحالية{% elif lang == 'fr' %}Mot de passe actuel{% else %}Current Password{% endif %}</label>
+        {{ password_form.old_password }}
+        {% if password_form.old_password.errors %}
+          <span class="field-error">{{ password_form.old_password.errors.0 }}</span>
+        {% endif %}
+      </div>
+      {% else %}
+      <p class="text-muted" style="font-size: 12px; margin-bottom: 12px;">
+        {% if lang == 'ar' %}هذا الحساب لا يحتوي كلمة مرور محلية بعد. يرجى تعيين كلمة مرور جديدة.{% elif lang == 'fr' %}Ce compte n'a pas encore de mot de passe local. Veuillez definir un nouveau mot de passe.{% else %}This account does not have a local password yet. Please set a new password.{% endif %}
+      </p>
+      {% endif %}
+      <div class="form-group">
+        <label>{% if lang == 'ar' %}كلمة المرور الجديدة{% elif lang == 'fr' %}Nouveau mot de passe{% else %}New Password{% endif %}</label>
+        {{ password_form.new_password1 }}
+        {% if password_form.new_password1.errors %}
+          <span class="field-error">{{ password_form.new_password1.errors.0 }}</span>
+        {% endif %}
+      </div>
+      <div class="form-group">
+        <label>{% if lang == 'ar' %}تأكيد كلمة المرور الجديدة{% elif lang == 'fr' %}Confirmer le nouveau mot de passe{% else %}Confirm New Password{% endif %}</label>
+        {{ password_form.new_password2 }}
+        {% if password_form.new_password2.errors %}
+          <span class="field-error">{{ password_form.new_password2.errors.0 }}</span>
+        {% endif %}
+      </div>
+      <button type="submit" class="btn btn-primary">
+        <i class="fa fa-key"></i> {% if lang == 'ar' %}تحديث كلمة المرور{% elif lang == 'fr' %}Mettre a jour le mot de passe{% else %}Update Password{% endif %}
+      </button>
+    </form>
+
+    <div style="margin-top: 14px; border-top: 1px solid var(--border); padding-top: 14px;">
+      <p class="text-muted" style="margin-bottom: 10px; font-size: 12px;">
+        {% if lang == 'ar' %}نسيت كلمة المرور الحالية؟ سنرسل رابط استعادة الى بريدك المسجل.{% elif lang == 'fr' %}Mot de passe actuel oublie ? Nous enverrons un lien de reinitialisation a votre e-mail enregistre.{% else %}Forgot your current password? We can send a reset link to your registered email.{% endif %}
+      </p>
+      <form method="post" action="{% url 'core:forgot_password_from_settings' %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-outline btn-sm">
+          <i class="fa fa-paper-plane"></i> {% if lang == 'ar' %}ارسال رابط الاستعادة{% elif lang == 'fr' %}Envoyer le lien de reinitialisation{% else %}Send Reset Link{% endif %}
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Theme Preview -->
+  <div class="settings-card glass">
+    <div class="settings-card-header">
+      <i class="fa fa-palette"></i>
+      <div>
+        <h3>{% if lang == 'ar' %}معاينة السمة{% elif lang == 'fr' %}Apercu du theme{% else %}Theme Preview{% endif %}</h3>
+        <p class="text-muted">{% if lang == 'ar' %}السمة الحالية معروضة اعلاه{% elif lang == 'fr' %}Votre theme actuel est affiche ci-dessus{% else %}Your current theme selection is displayed above{% endif %}</p>
+      </div>
+    </div>
+
+    <div class="theme-preview-grid">
+      <div class="theme-option theme-dark">
+        <div class="theme-preview"></div>
+        <div class="theme-label">{% if lang == 'ar' %}داكن حديث{% elif lang == 'fr' %}Sombre moderne{% else %}Dark Modern{% endif %}</div>
+        <small>{% if lang == 'ar' %}السمة الداكنة الاصلية{% elif lang == 'fr' %}Theme SaaS sombre original{% else %}Original dark SaaS theme{% endif %}</small>
+      </div>
+      <div class="theme-option theme-light">
+        <div class="theme-preview"></div>
+        <div class="theme-label">{% if lang == 'ar' %}فاتح احترافي{% elif lang == 'fr' %}Clair professionnel{% else %}Light Professional{% endif %}</div>
+        <small>{% if lang == 'ar' %}نظيف وبسيط{% elif lang == 'fr' %}Propre et minimaliste{% else %}Clean & minimalist{% endif %}</small>
+      </div>
+      <div class="theme-option theme-vibrant">
+        <div class="theme-preview"></div>
+        <div class="theme-label">{% if lang == 'ar' %}حيوي نيون{% elif lang == 'fr' %}Neon vibrant{% else %}Vibrant Neon{% endif %}</div>
+        <small>{% if lang == 'ar' %}جريء وملون{% elif lang == 'fr' %}Audacieux et colore{% else %}Bold & colorful{% endif %}</small>
+      </div>
+      <div class="theme-option theme-sage">
+        <div class="theme-preview"></div>
+        <div class="theme-label">{% if lang == 'ar' %}مريمي هادئ{% elif lang == 'fr' %}Sauge douce{% else %}Sage Calm{% endif %}</div>
+        <small>{% if lang == 'ar' %}هادئ ومتوازن{% elif lang == 'fr' %}Doux et equilibre{% else %}Calm & balanced{% endif %}</small>
+      </div>
+      <div class="theme-option theme-sand">
+        <div class="theme-preview"></div>
+        <div class="theme-label">{% if lang == 'ar' %}رملي ناعم{% elif lang == 'fr' %}Sable doux{% else %}Sandstone Soft{% endif %}</div>
+        <small>{% if lang == 'ar' %}دافئ ومريح{% elif lang == 'fr' %}Chaud et confortable{% else %}Warm & soft{% endif %}</small>
+      </div>
+    </div>
+    <p style="color: var(--text-muted); font-size: 12px; margin-top: 14px; text-align: center;">{% if lang == 'ar' %}اختر السمة المفضلة من قسم معلومات الملف الشخصي{% elif lang == 'fr' %}Selectionnez votre theme prefere dans la section Profil{% else %}Select your preferred theme in the Profile Information section above{% endif %}</p>
+  </div>
+
+  <!-- Account Info -->
+  <div class="settings-card glass">
+    <div class="settings-card-header">
+      <i class="fa fa-shield-halved"></i>
+      <div>
+        <h3>{% if lang == 'ar' %}تفاصيل الحساب{% elif lang == 'fr' %}Details du compte{% else %}Account Details{% endif %}</h3>
+        <p class="text-muted">{% if lang == 'ar' %}معلومات حسابك في DroneSec{% elif lang == 'fr' %}Informations de votre compte DroneSec{% else %}Your DroneSec account information{% endif %}</p>
+      </div>
+    </div>
+    <div class="account-info-list">
+      <div class="account-info-item">
+        <span class="info-label">{% if lang == 'ar' %}اسم المستخدم{% elif lang == 'fr' %}Nom d'utilisateur{% else %}Username{% endif %}</span>
+        <span class="info-val">{{ request.user.username }}</span>
+      </div>
+      <div class="account-info-item">
+        <span class="info-label">{% if lang == 'ar' %}الدور{% elif lang == 'fr' %}Role{% else %}Role{% endif %}</span>
+        <span class="role-badge role-{{ request.user.role }}">{% if request.user.role == 'admin' %}{% if lang == 'ar' %}مشرف{% elif lang == 'fr' %}Admin{% else %}Admin{% endif %}{% else %}{% if lang == 'ar' %}وكيل{% elif lang == 'fr' %}Agent{% else %}Agent{% endif %}{% endif %}</span>
+      </div>
+      <div class="account-info-item">
+        <span class="info-label">{% if lang == 'ar' %}اللغة{% elif lang == 'fr' %}Langue{% else %}Language{% endif %}</span>
+        <span class="info-val">{% if request.user.language == 'ar' %}{% if lang == 'ar' %}العربية{% elif lang == 'fr' %}Arabe{% else %}Arabic{% endif %}{% elif request.user.language == 'fr' %}{% if lang == 'ar' %}الفرنسية{% elif lang == 'fr' %}Francais{% else %}French{% endif %}{% else %}{% if lang == 'ar' %}الانجليزية{% elif lang == 'fr' %}Anglais{% else %}English{% endif %}{% endif %}</span>
+      </div>
+      <div class="account-info-item">
+        <span class="info-label">{% if lang == 'ar' %}حالة الحساب{% elif lang == 'fr' %}Statut du compte{% else %}Account Status{% endif %}</span>
+        {% if request.user.is_approved %}
+          <span class="badge badge-online">{% if lang == 'ar' %}معتمد{% elif lang == 'fr' %}Approuve{% else %}Approved{% endif %}</span>
+        {% else %}
+          <span class="badge badge-warn">{% if lang == 'ar' %}قيد الانتظار{% elif lang == 'fr' %}En attente{% else %}Pending{% endif %}</span>
+        {% endif %}
+      </div>
+      <div class="account-info-item">
+        <span class="info-label">{% if lang == 'ar' %}عضو منذ{% elif lang == 'fr' %}Membre depuis{% else %}Member Since{% endif %}</span>
+        <span class="info-val">{{ request.user.date_joined|date:"d M Y" }}</span>
+      </div>
+      <div class="account-info-item">
+        <span class="info-label">{% if lang == 'ar' %}اخر نشاط{% elif lang == 'fr' %}Derniere activite{% else %}Last Seen{% endif %}</span>
+        <span class="info-val">{{ request.user.last_seen|date:"d M Y H:i"|default:"—" }}</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endwith %}
+{% endblock %}

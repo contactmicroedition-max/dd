@@ -1,0 +1,265 @@
+{% extends 'base.html' %}
+{% block title %}{% if request.user.language == 'ar' %}فحص الوكيل - {{ agent.get_full_name }}{% elif request.user.language == 'fr' %}Inspection agent - {{ agent.get_full_name }}{% else %}Inspect Agent - {{ agent.get_full_name }}{% endif %}{% endblock %}
+{% block page_title %}
+{% with lang=request.user.language|default:'en' %}
+<i class="fa fa-magnifying-glass"></i> {% if lang == 'ar' %}ملف الوكيل{% elif lang == 'fr' %}Profil de l'agent{% else %}Agent Profile{% endif %} - {{ agent.get_full_name }}
+{% endwith %}
+{% endblock %}
+{% block content %}
+{% with lang=request.user.language|default:'en' %}
+<div class="page-section">
+  <div class="inspect-grid">
+    <!-- Main Profile Card -->
+    <div class="inspect-card glass">
+      <div class="inspect-header">
+        <div class="inspect-avatar-section">
+          {% if agent.avatar %}
+            <img src="{{ agent.avatar.url }}" class="inspect-avatar" alt="{{ agent.get_full_name }}" />
+          {% else %}
+            <div class="inspect-avatar-placeholder">{{ agent.first_name|first|upper }}{{ agent.last_name|first|upper }}</div>
+          {% endif %}
+          <div>
+            <h2>{{ agent.get_full_name }}</h2>
+            <p class="text-muted">@{{ agent.username }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Agent Status -->
+      <div class="inspect-section">
+        <h4 style="margin-bottom: 12px;">{% if lang == 'ar' %}الحالة والنشاط{% elif lang == 'fr' %}Statut et activite{% else %}Status & Activity{% endif %}</h4>
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="info-label">{% if lang == 'ar' %}حالة النشاط{% elif lang == 'fr' %}Statut d'activite{% else %}Activity Status{% endif %}</span>
+            <span class="badge {{ agent.activity_status.badge_class }}">
+              {% if agent.activity_status.status == 'active' %}
+                {% if lang == 'ar' %}نشط{% elif lang == 'fr' %}Actif{% else %}Active{% endif %}
+              {% elif agent.activity_status.status == 'idle' %}
+                {% if lang == 'ar' %}خامل{% elif lang == 'fr' %}Inactif{% else %}Idle{% endif %}
+              {% elif agent.activity_status.status == 'offline' %}
+                {% if lang == 'ar' %}غير متصل{% elif lang == 'fr' %}Hors ligne{% else %}Offline{% endif %}
+              {% else %}
+                {% if lang == 'ar' %}غير معروف{% elif lang == 'fr' %}Inconnu{% else %}Unknown{% endif %}
+              {% endif %}
+            </span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">{% if lang == 'ar' %}اخر نشاط{% elif lang == 'fr' %}Derniere activite{% else %}Last Activity{% endif %}</span>
+            <span>
+              {% if agent.activity_status.time_ago %}
+                {{ agent.activity_status.time_ago }}
+              {% else %}
+                {{ agent.activity_status.label }}
+              {% endif %}
+            </span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">{% if lang == 'ar' %}الدور{% elif lang == 'fr' %}Role{% else %}Role{% endif %}</span>
+            <span class="role-badge role-{{ agent.role }}">{% if agent.role == 'admin' %}{% if lang == 'ar' %}مشرف{% elif lang == 'fr' %}Admin{% else %}Admin{% endif %}{% else %}{% if lang == 'ar' %}وكيل{% elif lang == 'fr' %}Agent{% else %}Agent{% endif %}{% endif %}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">{% if lang == 'ar' %}حالة الاعتماد{% elif lang == 'fr' %}Statut d'approbation{% else %}Approval Status{% endif %}</span>
+            <span>
+              {% if agent.is_approved %}
+                <span class="badge badge-success"><i class="fa fa-check"></i> {% if lang == 'ar' %}معتمد{% elif lang == 'fr' %}Approuve{% else %}Approved{% endif %}</span>
+              {% else %}
+                <span class="badge badge-warning"><i class="fa fa-clock"></i> {% if lang == 'ar' %}معلّق{% elif lang == 'fr' %}En attente{% else %}Pending{% endif %}</span>
+              {% endif %}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Personal Information -->
+      <div class="inspect-section">
+        <h4 style="margin-bottom: 12px;">{% if lang == 'ar' %}المعلومات الشخصية{% elif lang == 'fr' %}Informations personnelles{% else %}Personal Information{% endif %}</h4>
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="info-label">{% if lang == 'ar' %}البريد{% elif lang == 'fr' %}E-mail{% else %}Email{% endif %}</span>
+            <span>{{ agent.email }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">{% if lang == 'ar' %}الهاتف{% elif lang == 'fr' %}Telephone{% else %}Phone{% endif %}</span>
+            <span>{{ agent.phone|default:"—" }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">{% if lang == 'ar' %}القسم{% elif lang == 'fr' %}Departement{% else %}Department{% endif %}</span>
+            <span>{{ agent.department|default:"—" }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">{% if lang == 'ar' %}تم التحقق من البريد{% elif lang == 'fr' %}E-mail verifie{% else %}Email Verified{% endif %}</span>
+            <span>
+              {% if agent.email_verified %}
+                <span class="badge badge-success"><i class="fa fa-check"></i> {% if lang == 'ar' %}نعم{% elif lang == 'fr' %}Oui{% else %}Yes{% endif %}</span>
+              {% else %}
+                <span class="badge badge-error">{% if lang == 'ar' %}غير متحقق{% elif lang == 'fr' %}Non verifie{% else %}Not Verified{% endif %}</span>
+              {% endif %}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Account Information -->
+      <div class="inspect-section">
+        <h4 style="margin-bottom: 12px;">{% if lang == 'ar' %}معلومات الحساب{% elif lang == 'fr' %}Informations du compte{% else %}Account Information{% endif %}</h4>
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="info-label">{% if lang == 'ar' %}تاريخ التسجيل{% elif lang == 'fr' %}Inscription{% else %}Registered{% endif %}</span>
+            <span>{{ agent.date_joined|date:"d M Y, H:i" }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">{% if lang == 'ar' %}اخر ظهور{% elif lang == 'fr' %}Derniere presence{% else %}Last Seen{% endif %}</span>
+            <span>
+              {% if agent.last_seen %}
+                {{ agent.last_seen|date:"d M Y, H:i" }}
+              {% else %}
+                {% if lang == 'ar' %}ابدا{% elif lang == 'fr' %}Jamais{% else %}Never{% endif %}
+              {% endif %}
+            </span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">{% if lang == 'ar' %}نشط{% elif lang == 'fr' %}Actif{% else %}Active{% endif %}</span>
+            <span>
+              {% if agent.is_active %}
+                <span class="badge badge-success"><i class="fa fa-check"></i> {% if lang == 'ar' %}نعم{% elif lang == 'fr' %}Oui{% else %}Yes{% endif %}</span>
+              {% else %}
+                <span class="badge badge-error"><i class="fa fa-xmark"></i> {% if lang == 'ar' %}لا{% elif lang == 'fr' %}Non{% else %}No{% endif %}</span>
+              {% endif %}
+            </span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">{% if lang == 'ar' %}السمة{% elif lang == 'fr' %}Theme{% else %}Theme{% endif %}</span>
+            <span>{% if agent.theme == 'dark' %}{% if lang == 'ar' %}داكن حديث{% elif lang == 'fr' %}Sombre moderne{% else %}Dark Modern{% endif %}{% elif agent.theme == 'light' %}{% if lang == 'ar' %}فاتح احترافي{% elif lang == 'fr' %}Clair professionnel{% else %}Light Professional{% endif %}{% else %}{% if lang == 'ar' %}حيوي نيون{% elif lang == 'fr' %}Neon vibrant{% else %}Vibrant Neon{% endif %}{% endif %}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="inspect-section">
+        <h4 style="margin-bottom: 12px;">{% if lang == 'ar' %}الاجراءات{% elif lang == 'fr' %}Actions{% else %}Actions{% endif %}</h4>
+        <div class="action-btns">
+          {% if agent.role == 'agent' %}
+            <a href="{% url 'core:elevate_agent_to_admin' agent.pk %}" class="btn btn-primary">
+              <i class="fa fa-arrow-up"></i> {% if lang == 'ar' %}ترقية الى مشرف{% elif lang == 'fr' %}Promouvoir admin{% else %}Elevate to Admin{% endif %}
+            </a>
+          {% elif agent.role == 'admin' %}
+            <a href="{% url 'core:downgrade_admin_to_agent' agent.pk %}" class="btn btn-warning">
+              <i class="fa fa-arrow-down"></i> {% if lang == 'ar' %}خفض الى وكيل{% elif lang == 'fr' %}Retrograder en agent{% else %}Downgrade to Agent{% endif %}
+            </a>
+          {% endif %}
+          <a href="{% url 'core:remove_agent' agent.pk %}" class="btn btn-danger"
+             onclick="return confirm('Remove {{ agent.get_full_name }}?\n\nThis action permanently deletes the account.')">
+            <i class="fa fa-trash"></i> {% if lang == 'ar' %}ازالة المستخدم{% elif lang == 'fr' %}Supprimer l'utilisateur{% else %}Remove User{% endif %}
+          </a>
+          <a href="{% url 'core:agents_list' %}" class="btn btn-secondary">
+            <i class="fa fa-arrow-left"></i> {% if lang == 'ar' %}العودة للمستخدمين{% elif lang == 'fr' %}Retour aux utilisateurs{% else %}Back to Users{% endif %}
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar: Assigned Drones & Activities -->
+    <div class="inspect-sidebar">
+      <!-- Assigned Drones -->
+      <div class="inspect-card glass">
+        <h4 style="margin-bottom: 12px;"><i class="fa fa-helicopter"></i> {% if lang == 'ar' %}الطائرات المخصصة{% elif lang == 'fr' %}Drones assignes{% else %}Assigned Drones{% endif %}</h4>
+        {% if assigned_drones %}
+          <div class="activity-list">
+            {% for drone in assigned_drones %}
+              <div class="activity-item">
+                <div class="activity-icon" style="background: var(--blue-dim); color: var(--blue);">
+                  <i class="fa fa-helicopter"></i>
+                </div>
+                <div>
+                  <div class="fw-600">{{ drone.name }}</div>
+                  <div class="text-muted text-sm">{{ drone.serial_number }}</div>
+                  <div class="text-muted text-sm">
+                    {% if lang == 'ar' %}الحالة:{% elif lang == 'fr' %}Statut:{% else %}Status:{% endif %}
+                    <span class="badge" style="background: {% if drone.status == 'online' %}var(--green-dim){% else %}var(--red-dim){% endif %}; color: {% if drone.status == 'online' %}var(--green){% else %}var(--red){% endif %};">
+                      {% if drone.status == 'online' %}{% if lang == 'ar' %}متصل{% elif lang == 'fr' %}En ligne{% else %}Online{% endif %}{% elif drone.status == 'offline' %}{% if lang == 'ar' %}غير متصل{% elif lang == 'fr' %}Hors ligne{% else %}Offline{% endif %}{% elif drone.status == 'charging' %}{% if lang == 'ar' %}يشحن{% elif lang == 'fr' %}En charge{% else %}Charging{% endif %}{% elif drone.status == 'maintenance' %}{% if lang == 'ar' %}صيانة{% elif lang == 'fr' %}Maintenance{% else %}Maintenance{% endif %}{% else %}{% if lang == 'ar' %}دورية{% elif lang == 'fr' %}Patrouille{% else %}Patrolling{% endif %}{% endif %}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="empty-list">
+            <i class="fa fa-helicopter"></i>
+            <p>{% if lang == 'ar' %}لا توجد طائرات مخصصة{% elif lang == 'fr' %}Aucun drone assigne{% else %}No drones assigned{% endif %}</p>
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Recent Alerts -->
+      <div class="inspect-card glass">
+        <h4 style="margin-bottom: 12px;"><i class="fa fa-bell"></i> {% if lang == 'ar' %}احدث التنبيهات{% elif lang == 'fr' %}Alertes recentes{% else %}Recent Alerts{% endif %}</h4>
+        {% if alerts_created %}
+          <div class="activity-list">
+            {% for alert in alerts_created %}
+              <div class="activity-item">
+                <div class="activity-icon" style="background: var(--red-dim); color: var(--red);">
+                  <i class="fa fa-bell"></i>
+                </div>
+                <div>
+                  <div class="fw-600">{{ alert.title|truncatewords:5 }}</div>
+                  <div class="text-muted text-sm">{% if lang == 'ar' %}منذ {{ alert.created_at|timesince }}{% elif lang == 'fr' %}il y a {{ alert.created_at|timesince }}{% else %}{{ alert.created_at|timesince }} ago{% endif %}</div>
+                  <div class="text-muted text-sm">
+                    <span class="badge" style="background: 
+                      {% if alert.severity == 'critical' %}var(--red-dim)
+                      {% elif alert.severity == 'high' %}var(--orange-dim)
+                      {% else %}var(--yellow-dim)
+                      {% endif %};
+                      color: 
+                      {% if alert.severity == 'critical' %}var(--red)
+                      {% elif alert.severity == 'high' %}var(--orange)
+                      {% else %}var(--yellow)
+                      {% endif %};">
+                      {{ alert.get_severity_display }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="empty-list">
+            <i class="fa fa-bell"></i>
+            <p>{% if lang == 'ar' %}لا توجد تنبيهات{% elif lang == 'fr' %}Aucune alerte creee{% else %}No alerts created{% endif %}</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endwith %}
+
+<style>
+.inspect-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+@media (max-width: 1024px) { .inspect-grid { grid-template-columns: 1fr; } }
+
+.inspect-card { padding: 20px; }
+.inspect-header { margin-bottom: 20px; }
+.inspect-avatar-section { display: flex; align-items: center; gap: 16px; }
+.inspect-avatar { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border-hover); }
+.inspect-avatar-placeholder { width: 80px; height: 80px; border-radius: 50%; background: var(--blue-dim); color: var(--blue); font-size: 36px; font-weight: 700; display: flex; align-items: center; justify-content: center; border: 2px solid var(--border-hover); flex-shrink: 0; }
+
+.inspect-section { padding: 16px 0; border-bottom: 1px solid var(--border); }
+.inspect-section:last-child { border-bottom: none; }
+
+.info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.info-item { display: flex; flex-direction: column; gap: 4px; }
+.info-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+
+.activity-list { display: flex; flex-direction: column; gap: 12px; }
+.activity-item { display: flex; align-items: flex-start; gap: 12px; padding: 10px; background: rgba(255,255,255,0.02); border-radius: var(--radius-sm); }
+.activity-icon { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 14px; }
+.activity-item .fw-600 { font-size: 13px; line-height: 1.4; }
+.activity-item .text-sm { font-size: 11px; }
+
+.empty-list { text-align: center; padding: 20px; color: var(--text-muted); }
+.empty-list i { font-size: 32px; opacity: 0.4; margin-bottom: 8px; display: block; }
+
+.action-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+</style>
+{% endblock %}

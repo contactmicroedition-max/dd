@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block title %}{% if request.user.language == 'ar' %}بانتظار الموافقة{% elif request.user.language == 'fr' %}En attente d'approbation{% else %}Pending Approval{% endif %}{% endblock %}
+{% block content %}
+{% with lang=request.user.language|default:'en' %}
+<div class="pending-page">
+  <div class="pending-card glass">
+    <div class="pending-icon"><i class="fa fa-hourglass-half"></i></div>
+    <h2>{% if lang == 'ar' %}الحساب بانتظار الموافقة{% elif lang == 'fr' %}Compte en attente d'approbation{% else %}Account Pending Approval{% endif %}</h2>
+    <p>{% if lang == 'ar' %}تم إنشاء حسابك وهو بانتظار موافقة المشرف.<br>ستتلقى بريدا إلكترونيا بعد الموافقة.{% elif lang == 'fr' %}Votre compte a ete cree et attend l'approbation de l'administrateur.<br>Vous recevrez un e-mail une fois approuve.{% else %}Your account has been created and is waiting for admin approval.<br>You will receive an email once approved.{% endif %}</p>
+    <a href="{% url 'core:logout' %}" class="btn btn-outline">
+      <i class="fa fa-right-from-bracket"></i> {% if lang == 'ar' %}تسجيل الخروج{% elif lang == 'fr' %}Deconnexion{% else %}Logout{% endif %}
+    </a>
+  </div>
+</div>
+{% endwith %}
+{% endblock %}

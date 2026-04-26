@@ -1,0 +1,1215 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="{{ request.session.preferred_language|default:'en' }}" dir="{% if request.session.preferred_language == 'ar' %}rtl{% else %}ltr{% endif %}" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DroneSec - {% if request.session.preferred_language == 'ar' %}مراقبة امنية بالطائرات بدون طيار{% elif request.session.preferred_language == 'fr' %}Surveillance de securite par drones{% else %}Enterprise Drone Security Monitoring{% endif %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="{% static 'css/main.css' %}" />
+  <style>
+    /* ═════════════════════════════════════════════════════════════
+       LANDING PAGE SPECIFIC STYLES
+    ═════════════════════════════════════════════════════════════ */
+
+    .landing-nav {
+      position: fixed;
+      top: 0;
+      width: 100%;
+      height: var(--topbar-h);
+      background: rgba(5, 10, 20, 0.95);
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(12px);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      z-index: 1000;
+    }
+
+    .landing-nav-left {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+      min-width: 0;
+    }
+
+    .landing-nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      font-family: var(--font-display);
+    }
+
+    .landing-nav-logo i {
+      width: 32px;
+      height: 32px;
+      background: var(--blue-dim);
+      border: 1px solid var(--border-hover);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--blue);
+      flex-shrink: 0;
+      box-shadow: var(--blue-glow);
+    }
+
+    .landing-nav-logo span { color: var(--blue); }
+
+    .landing-nav-links {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      flex-wrap: wrap;
+    }
+
+    .landing-nav-links a {
+      color: var(--text-secondary);
+      font-size: 14px;
+      font-weight: 500;
+      text-decoration: none;
+      transition: var(--transition);
+    }
+
+    .landing-nav-links a:hover {
+      color: var(--blue);
+    }
+
+    .landing-nav-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .landing-content {
+      margin-top: var(--topbar-h);
+      min-height: calc(100vh - var(--topbar-h));
+    }
+
+    /* ── HERO SECTION ─────────────────────────────────────── */
+    .hero {
+      position: relative;
+      padding: 80px 32px;
+      text-align: center;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 100% 80% at 50% -20%, rgba(56,189,248,0.08) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 80% at 50% 120%, rgba(56,189,248,0.04) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .hero-inner {
+      max-width: 900px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 2;
+    }
+
+    .hero-logo {
+      width: 64px;
+      height: 64px;
+      background: var(--blue-dim);
+      border: 2px solid var(--blue);
+      border-radius: var(--radius);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 24px;
+      font-size: 32px;
+      color: var(--blue);
+      box-shadow: 0 0 40px var(--blue-glow);
+    }
+
+    .hero h1 {
+      font-family: var(--font-display);
+      font-size: 56px;
+      font-weight: 700;
+      letter-spacing: -1px;
+      margin-bottom: 16px;
+      line-height: 1.2;
+    }
+
+    .hero h1 span { color: var(--blue); }
+
+    .hero-subtitle {
+      font-size: 18px;
+      color: var(--text-secondary);
+      margin-bottom: 32px;
+      line-height: 1.6;
+      max-width: 700px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .hero-cta {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn-hero {
+      padding: 12px 28px;
+      font-size: 15px;
+      font-weight: 600;
+      border-radius: var(--radius);
+      border: none;
+      cursor: pointer;
+      transition: var(--transition);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+    }
+
+    .btn-hero-primary {
+      background: var(--blue);
+      color: #000;
+      box-shadow: 0 0 20px rgba(56,189,248,0.3);
+    }
+
+    .btn-hero-primary:hover {
+      background: #7dd3fc;
+      box-shadow: 0 0 30px rgba(56,189,248,0.5);
+      transform: translateY(-2px);
+    }
+
+    .btn-hero-secondary {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--blue);
+    }
+
+    .btn-hero-secondary:hover {
+      background: var(--bg-hover);
+      border-color: var(--blue);
+    }
+
+    /* ── FEATURES SECTION ─────────────────────────────────── */
+    .features {
+      padding: 80px 32px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .section-heading {
+      text-align: center;
+      margin-bottom: 60px;
+    }
+
+    .section-heading h2 {
+      font-family: var(--font-display);
+      font-size: 42px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
+    .section-heading p {
+      font-size: 16px;
+      color: var(--text-secondary);
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+    }
+
+    .feature-card {
+      padding: 32px 24px;
+      border-radius: var(--radius);
+      background: rgba(10, 22, 40, 0.4);
+      border: 1px solid var(--border);
+      transition: var(--transition);
+    }
+
+    .feature-card:hover {
+      background: rgba(10, 22, 40, 0.6);
+      border-color: var(--blue);
+      transform: translateY(-4px);
+    }
+
+    .feature-icon {
+      width: 48px;
+      height: 48px;
+      background: var(--blue-dim);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--blue);
+      font-size: 24px;
+      margin-bottom: 16px;
+    }
+
+    .feature-card h3 {
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    .feature-card p {
+      color: var(--text-secondary);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    /* ── STATS SECTION ────────────────────────────────────── */
+    .stats {
+      padding: 80px 32px;
+      background: rgba(56, 189, 248, 0.02);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .stats-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 40px;
+      text-align: center;
+    }
+
+    .stat-item h3 {
+      font-family: var(--font-display);
+      font-size: 32px;
+      color: var(--blue);
+      margin-bottom: 8px;
+    }
+
+    .stat-item p {
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+
+    /* ── CTA SECTION ──────────────────────────────────────── */
+    .cta-section {
+      padding: 80px 32px;
+      max-width: 900px;
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    .cta-section h2 {
+      font-family: var(--font-display);
+      font-size: 40px;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+
+    .cta-section p {
+      font-size: 16px;
+      color: var(--text-secondary);
+      margin-bottom: 32px;
+    }
+
+    /* ── FOOTER ───────────────────────────────────────────– */
+    .landing-footer {
+      background: rgba(5, 10, 20, 0.5);
+      border-top: 1px solid var(--border);
+      padding: 48px 32px 32px;
+      margin-top: 60px;
+    }
+
+    .footer-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .footer-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 40px;
+      margin-bottom: 40px;
+    }
+
+    .footer-col h3 {
+      font-family: var(--font-display);
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: var(--text-primary);
+    }
+
+    .footer-col ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .footer-col a {
+      color: var(--text-secondary);
+      font-size: 14px;
+      transition: var(--transition);
+    }
+
+    .footer-col a:hover {
+      color: var(--blue);
+    }
+
+    .footer-info-box {
+      display: none;
+      margin-bottom: 24px;
+      padding: 14px 16px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: rgba(10, 22, 40, 0.45);
+    }
+
+    .footer-info-box.active {
+      display: block;
+    }
+
+    .footer-info-title {
+      font-family: var(--font-display);
+      color: var(--text-primary);
+      margin-bottom: 6px;
+      font-size: 16px;
+    }
+
+    .footer-info-text {
+      color: var(--text-secondary);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .contact-panel {
+      margin-bottom: 32px;
+      padding: 22px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: rgba(10, 22, 40, 0.45);
+    }
+
+    .contact-panel h3 {
+      font-family: var(--font-display);
+      margin-bottom: 8px;
+      font-size: 24px;
+    }
+
+    .contact-panel p {
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+      font-size: 14px;
+    }
+
+    .contact-status {
+      margin-bottom: 12px;
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+    }
+
+    .contact-status.success {
+      color: #86efac;
+      border: 1px solid rgba(34, 197, 94, 0.45);
+      background: rgba(20, 83, 45, 0.35);
+    }
+
+    .contact-status.error {
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, 0.5);
+      background: rgba(127, 29, 29, 0.32);
+    }
+
+    .contact-status.info {
+      color: #93c5fd;
+      border: 1px solid rgba(59, 130, 246, 0.45);
+      background: rgba(30, 58, 138, 0.28);
+    }
+
+    .contact-status.is-hidden {
+      display: none;
+    }
+
+    .contact-status.fade-out {
+      opacity: 0;
+      transition: opacity 1.6s ease;
+    }
+
+    .contact-form-wrap {
+      display: none;
+    }
+
+    .contact-form-wrap.active {
+      display: block;
+    }
+
+    .contact-form {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .contact-form .full {
+      grid-column: 1 / -1;
+    }
+
+    .contact-form input,
+    .contact-form textarea {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      background: rgba(5, 10, 20, 0.7);
+      color: var(--text-primary);
+      font-family: var(--font-body);
+      font-size: 14px;
+    }
+
+    .contact-form textarea {
+      min-height: 120px;
+      resize: vertical;
+    }
+
+    .contact-form button {
+      justify-self: start;
+    }
+
+    .contact-form button[disabled] {
+      opacity: 0.72;
+      cursor: not-allowed;
+    }
+
+    .contact-form button.is-loading {
+      box-shadow: none;
+      transform: none;
+    }
+
+    .contact-verify-wrap {
+      margin-bottom: 12px;
+      padding: 14px;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      background:
+        linear-gradient(145deg, rgba(30, 64, 96, 0.45), rgba(16, 32, 56, 0.62));
+      box-shadow:
+        inset 0 1px 0 rgba(186, 230, 253, 0.08),
+        0 8px 20px rgba(2, 6, 23, 0.24);
+    }
+
+    .contact-verify-wrap.is-hidden {
+      display: none;
+    }
+
+    .contact-verify-hint {
+      font-size: 13px;
+      color: #bfdbfe;
+      margin-bottom: 10px;
+    }
+
+    .contact-verify-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 10px;
+      align-items: center;
+    }
+
+    .contact-verify-row input {
+      width: 100%;
+      border: 1px solid rgba(56, 189, 248, 0.28);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      background: rgba(5, 10, 20, 0.78);
+      color: #e2e8f0;
+      font-family: var(--font-mono);
+      font-size: 15px;
+      letter-spacing: 0.18em;
+      text-align: center;
+      transition: var(--transition);
+    }
+
+    .contact-verify-row input::placeholder {
+      letter-spacing: normal;
+      font-family: var(--font-body);
+      color: rgba(191, 219, 254, 0.72);
+    }
+
+    .contact-verify-row input:focus {
+      outline: none;
+      border-color: rgba(56, 189, 248, 0.72);
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.22);
+    }
+
+    .footer-bottom {
+      border-top: 1px solid var(--border);
+      padding-top: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    /* ── RESPONSIVE ───────────────────────────────────────── */
+    @media (max-width: 768px) {
+      .landing-nav {
+        padding: 0 16px;
+      }
+
+      .landing-nav-links {
+        display: none;
+      }
+
+      .landing-nav-actions {
+        gap: 8px;
+      }
+
+      .landing-nav-actions .btn-hero {
+        padding: 10px 14px;
+        font-size: 13px;
+      }
+
+      .hero h1 {
+        font-size: 36px;
+      }
+
+      .hero-subtitle {
+        font-size: 15px;
+      }
+
+      .section-heading h2 {
+        font-size: 32px;
+      }
+
+      .footer-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .contact-form {
+        grid-template-columns: 1fr;
+      }
+
+      .footer-bottom {
+        flex-direction: column;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+<body>
+{% with lang=request.session.preferred_language|default:'en' %}
+
+<!-- ════════ NAVIGATION ════════ -->
+<nav class="landing-nav">
+  <div class="landing-nav-left">
+    <div class="landing-nav-logo">
+      <i class="fa fa-shield-halved"></i>
+      <span>Drone<span>Sec</span></span>
+    </div>
+    <div class="landing-nav-links">
+      <a href="#features">{% if lang == 'ar' %}الميزات{% elif lang == 'fr' %}Fonctionnalites{% else %}Features{% endif %}</a>
+      <a href="#access">{% if lang == 'ar' %}الوصول{% elif lang == 'fr' %}Acces{% else %}Access{% endif %}</a>
+      <a id="contact-nav-link" href="#contact">{% if lang == 'ar' %}اتصل بنا{% elif lang == 'fr' %}Contact{% else %}Contact{% endif %}</a>
+    </div>
+  </div>
+  <div class="landing-nav-actions">
+    <a href="{% url 'core:register' %}" class="btn-hero btn-hero-primary">
+      <i class="fa fa-user-plus"></i> {% if lang == 'ar' %}طلب وصول{% elif lang == 'fr' %}Demander l'acces{% else %}Request Access{% endif %}
+    </a>
+    <a href="{% url 'core:login' %}" class="btn-hero btn-hero-secondary">
+      <i class="fa fa-right-to-bracket"></i> {% if lang == 'ar' %}تسجيل الدخول{% elif lang == 'fr' %}Se connecter{% else %}Sign In{% endif %}
+    </a>
+  </div>
+</nav>
+
+<!-- ════════ MAIN CONTENT ════════ -->
+<div class="landing-content">
+
+  <!-- ── HERO ── -->
+  <section class="hero" id="home">
+    <div class="hero-inner">
+      <div class="hero-logo"><i class="fa fa-helicopter"></i></div>
+      <h1>{% if lang == 'ar' %}مراقبة امنية متقدمة <span>بالطائرات بدون طيار</span>{% elif lang == 'fr' %}Surveillance de securite avancee <span>par drones</span>{% else %}Advanced Drone-Based <span>Security Monitoring</span>{% endif %}</h1>
+      <p class="hero-subtitle">
+        {% if lang == 'ar' %}
+        احم مؤسستك بمراقبة جوية مدعومة بالذكاء الاصطناعي مع كشف فوري للتهديدات وتنبيهات ذكية وتحليلات امنية متكاملة.
+        {% elif lang == 'fr' %}
+        Protegez votre entreprise avec une surveillance par drones alimentee par l'IA: detection en temps reel, alertes intelligentes et analyses completes.
+        {% else %}
+        Protect your enterprise with AI-powered drone surveillance. Real-time threat detection,
+        intelligent alerts, and comprehensive security analytics for modern businesses.
+        {% endif %}
+      </p>
+      <div class="hero-cta">
+        <a href="{% url 'core:login' %}" class="btn-hero btn-hero-primary">
+          <i class="fa fa-arrow-right"></i> {% if lang == 'ar' %}تسجيل الدخول{% elif lang == 'fr' %}Se connecter{% else %}Sign In{% endif %}
+        </a>
+        <a href="{% url 'core:register' %}" class="btn-hero btn-hero-secondary">
+          <i class="fa fa-user-plus"></i> {% if lang == 'ar' %}طلب وصول{% elif lang == 'fr' %}Demander l'acces{% else %}Request Access{% endif %}
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── FEATURES ── -->
+  <section class="features" id="features">
+    <div class="section-heading">
+      <h2>{% if lang == 'ar' %}ميزات امن المؤسسات{% elif lang == 'fr' %}Fonctionnalites de securite entreprise{% else %}Enterprise Security Features{% endif %}</h2>
+      <p>{% if lang == 'ar' %}كل ما تحتاجه لمراقبة وحماية عملك{% elif lang == 'fr' %}Tout ce dont vous avez besoin pour surveiller et proteger votre activite{% else %}Everything you need to monitor and protect your business{% endif %}</p>
+    </div>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="feature-icon"><i class="fa fa-video"></i></div>
+        <h3>{% if lang == 'ar' %}مراقبة مباشرة{% elif lang == 'fr' %}Surveillance en direct{% else %}Live Monitoring{% endif %}</h3>
+        <p>{% if lang == 'ar' %}بث فيديو مباشر من اسطول الطائرات مع دعم عدة قنوات ومراقبة على مدار الساعة.{% elif lang == 'fr' %}Flux video en temps reel depuis votre flotte de drones avec prise en charge multi-flux 24/7.{% else %}Real-time video feeds from your drone fleet with multiple stream support and 24/7 coverage.{% endif %}</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon"><i class="fa fa-bell"></i></div>
+        <h3>{% if lang == 'ar' %}تنبيهات ذكية{% elif lang == 'fr' %}Alertes intelligentes{% else %}Intelligent Alerts{% endif %}</h3>
+        <p>{% if lang == 'ar' %}كشف التهديدات بالذكاء الاصطناعي مع اشعارات فورية للحوادث الامنية.{% elif lang == 'fr' %}Detection des menaces par IA avec notifications instantanees des incidents de securite.{% else %}AI-powered threat detection with instant notifications for security incidents.{% endif %}</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon"><i class="fa fa-chart-line"></i></div>
+        <h3>{% if lang == 'ar' %}تحليلات متقدمة{% elif lang == 'fr' %}Analytique avancee{% else %}Advanced Analytics{% endif %}</h3>
+        <p>{% if lang == 'ar' %}تقارير شاملة وتحليل اتجاهات ورؤى امنية لاتخاذ قرارات افضل.{% elif lang == 'fr' %}Rapports complets, analyse des tendances et insights securite pour de meilleures decisions.{% else %}Comprehensive reporting, trend analysis, and security insights for better decision making.{% endif %}</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon"><i class="fa fa-users-gear"></i></div>
+        <h3>{% if lang == 'ar' %}ادارة الفريق{% elif lang == 'fr' %}Gestion d'equipe{% else %}Team Management{% endif %}</h3>
+        <p>{% if lang == 'ar' %}تحكم في الوصول حسب الادوار مع سير موافقات متوافق مع متطلبات امن المؤسسات.{% elif lang == 'fr' %}Controle d'acces base sur les roles avec workflow d'approbation conforme aux exigences entreprise.{% else %}Role-based access control with approval workflows for enterprise security compliance.{% endif %}</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon"><i class="fa fa-location-dot"></i></div>
+        <h3>{% if lang == 'ar' %}تتبع GPS{% elif lang == 'fr' %}Suivi GPS{% else %}GPS Tracking{% endif %}</h3>
+        <p>{% if lang == 'ar' %}تتبع جغرافي دقيق وادارة نطاقات جغرافية ومسارات دورية ذاتية.{% elif lang == 'fr' %}Suivi geolocalise precis, gestion geofence et itineraire de patrouille autonome.{% else %}Precise geolocation tracking, geofence management, and autonomous patrol routes.{% endif %}</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon"><i class="fa fa-shield-halved"></i></div>
+        <h3>{% if lang == 'ar' %}الامن اولا{% elif lang == 'fr' %}Securite avant tout{% else %}Security First{% endif %}</h3>
+        <p>{% if lang == 'ar' %}تشفير بمستوى المؤسسات ومصادقة آمنة والتزام بالمعايير الصناعية.{% elif lang == 'fr' %}Chiffrement niveau entreprise, authentification securisee et conformite aux normes du secteur.{% else %}Enterprise-grade encryption, secure authentication, and compliance with industry standards.{% endif %}</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── CTA ── -->
+  <section class="cta-section" id="access">
+    <h2>{% if lang == 'ar' %}هل انت مستعد لحماية مؤسستك؟{% elif lang == 'fr' %}Pret a securiser votre entreprise ?{% else %}Ready to Secure Your Enterprise?{% endif %}</h2>
+    <p>{% if lang == 'ar' %}انضم الى الشركات الرائدة التي تحمي عملياتها باستخدام DroneSec{% elif lang == 'fr' %}Rejoignez les entreprises qui protegent leurs operations avec DroneSec{% else %}Join leading companies protecting their operations with DroneSec{% endif %}</p>
+    <a href="{% url 'core:register' %}" class="btn-hero btn-hero-primary">
+      <i class="fa fa-user-plus"></i> {% if lang == 'ar' %}اطلب الوصول الآن{% elif lang == 'fr' %}Demander l'acces maintenant{% else %}Request Access Now{% endif %}
+    </a>
+  </section>
+
+</div>
+
+<!-- ════════ FOOTER ════════ -->
+<footer class="landing-footer" id="contact">
+  <div class="footer-inner">
+    <section class="contact-panel">
+      <h3>{% if lang == 'ar' %}اتصل بنا{% elif lang == 'fr' %}Contactez-nous{% else %}Contact Us{% endif %}</h3>
+      <p>{% if lang == 'ar' %}اكتب رسالتك وسنرسلها مباشرة الى بريد الفريق.{% elif lang == 'fr' %}Envoyez votre message et il sera transmis directement a l'e-mail de l'equipe.{% else %}Send your message and it will go directly to our team email.{% endif %}</p>
+
+      <div id="contact-success-note" class="contact-status success {% if not contact_success %}is-hidden{% endif %}">{% if contact_success %}{{ contact_success }}{% endif %}</div>
+
+      <div id="contact-form-wrap" class="contact-form-wrap {% if contact_error %}active{% endif %}">
+        <div id="contact-error-note" class="contact-status error {% if not contact_error %}is-hidden{% endif %}">{% if contact_error %}{{ contact_error }}{% endif %}</div>
+        <div id="contact-info-note" class="contact-status info is-hidden"></div>
+
+        <div id="contact-verify-wrap" class="contact-verify-wrap is-hidden">
+          <div class="contact-verify-hint">{% if lang == 'ar' %}ادخل رمز التحقق الذي وصلك على بريدك قبل ارسال الرسالة.{% elif lang == 'fr' %}Entrez le code recu par e-mail avant l'envoi du message.{% else %}Enter the verification code sent to your email before sending the message.{% endif %}</div>
+          <div class="contact-verify-row">
+            <input id="contact-verify-code" type="text" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" placeholder="{% if lang == 'ar' %}رمز التحقق (6 ارقام){% elif lang == 'fr' %}Code de verification (6 chiffres){% else %}Verification Code (6 digits){% endif %}" />
+          </div>
+        </div>
+
+        <form id="contact-form" method="post" class="contact-form" novalidate>
+          {% csrf_token %}
+          <input type="hidden" name="form_type" value="contact" />
+          <input type="text" name="name" placeholder="{% if lang == 'ar' %}الاسم{% elif lang == 'fr' %}Nom{% else %}Name{% endif %}" value="{{ contact_name|default:'' }}" required />
+          <input type="email" name="email" placeholder="{% if lang == 'ar' %}البريد الالكتروني{% elif lang == 'fr' %}E-mail{% else %}Email{% endif %}" value="{{ contact_email|default:'' }}" required />
+          <textarea name="message" class="full" placeholder="{% if lang == 'ar' %}رسالتك{% elif lang == 'fr' %}Votre message{% else %}Your message{% endif %}" required>{{ contact_message|default:'' }}</textarea>
+          <button type="submit" class="btn-hero btn-hero-primary full" data-sending-label="{% if lang == 'ar' %}جاري الارسال...{% elif lang == 'fr' %}Envoi...{% else %}Sending...{% endif %}"><i class="fa fa-paper-plane"></i> {% if lang == 'ar' %}ارسال{% elif lang == 'fr' %}Envoyer{% else %}Send{% endif %}</button>
+        </form>
+      </div>
+    </section>
+
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h3>{% if lang == 'ar' %}المنتج{% elif lang == 'fr' %}Produit{% else %}Product{% endif %}</h3>
+        <ul>
+          <li><a href="#" class="footer-info-link" data-topic="features">{% if lang == 'ar' %}الميزات{% elif lang == 'fr' %}Fonctionnalites{% else %}Features{% endif %}</a></li>
+          <li><a href="#" class="footer-info-link" data-topic="pricing">{% if lang == 'ar' %}الاسعار{% elif lang == 'fr' %}Tarification{% else %}Pricing{% endif %}</a></li>
+          <li><a href="#" class="footer-info-link" data-topic="security">{% if lang == 'ar' %}الامن{% elif lang == 'fr' %}Securite{% else %}Security{% endif %}</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h3>{% if lang == 'ar' %}الشركة{% elif lang == 'fr' %}Societe{% else %}Company{% endif %}</h3>
+        <ul>
+          <li><a href="#" class="footer-info-link" data-topic="about">{% if lang == 'ar' %}من نحن{% elif lang == 'fr' %}A propos{% else %}About{% endif %}</a></li>
+          <li><a href="#" class="footer-info-link" data-topic="blog">{% if lang == 'ar' %}المدونة{% elif lang == 'fr' %}Blog{% else %}Blog{% endif %}</a></li>
+          <li><a href="#" class="footer-info-link" data-topic="careers">{% if lang == 'ar' %}الوظائف{% elif lang == 'fr' %}Carrieres{% else %}Careers{% endif %}</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h3>{% if lang == 'ar' %}الموارد{% elif lang == 'fr' %}Ressources{% else %}Resources{% endif %}</h3>
+        <ul>
+          <li><a href="#" class="footer-info-link" data-topic="docs">{% if lang == 'ar' %}التوثيق{% elif lang == 'fr' %}Documentation{% else %}Documentation{% endif %}</a></li>
+          <li><a href="#" class="footer-info-link" data-topic="support">{% if lang == 'ar' %}الدعم{% elif lang == 'fr' %}Support{% else %}Support{% endif %}</a></li>
+          <li><a href="#" class="footer-info-link" data-topic="contact">{% if lang == 'ar' %}اتصل بنا{% elif lang == 'fr' %}Contact{% else %}Contact{% endif %}</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h3>{% if lang == 'ar' %}قانوني{% elif lang == 'fr' %}Juridique{% else %}Legal{% endif %}</h3>
+        <ul>
+          <li><a href="#" class="footer-info-link" data-topic="privacy">{% if lang == 'ar' %}سياسة الخصوصية{% elif lang == 'fr' %}Politique de confidentialite{% else %}Privacy Policy{% endif %}</a></li>
+          <li><a href="#" class="footer-info-link" data-topic="terms">{% if lang == 'ar' %}شروط الخدمة{% elif lang == 'fr' %}Conditions d'utilisation{% else %}Terms of Service{% endif %}</a></li>
+          <li><a href="#" class="footer-info-link" data-topic="compliance">{% if lang == 'ar' %}الامتثال{% elif lang == 'fr' %}Conformite{% else %}Compliance{% endif %}</a></li>
+        </ul>
+      </div>
+    </div>
+    <div id="footer-info-box" class="footer-info-box" aria-live="polite">
+      <div id="footer-info-title" class="footer-info-title"></div>
+      <p id="footer-info-text" class="footer-info-text"></p>
+    </div>
+    <div class="footer-bottom">
+      <span>&copy; 2026 DroneSec. {% if lang == 'ar' %}جميع الحقوق محفوظة.{% elif lang == 'fr' %}Tous droits reserves.{% else %}All rights reserved.{% endif %}</span>
+      <span>{% if lang == 'ar' %}حماية المؤسسات بتقنيات الطائرات المتقدمة{% elif lang == 'fr' %}Securiser les entreprises avec des technologies de drones avancees{% else %}Securing enterprises with advanced drone technology{% endif %}</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function () {
+  const infoBox = document.getElementById('footer-info-box');
+  const infoTitle = document.getElementById('footer-info-title');
+  const infoText = document.getElementById('footer-info-text');
+  const contactNavLink = document.getElementById('contact-nav-link');
+  const contactFormWrap = document.getElementById('contact-form-wrap');
+  const contactSection = document.getElementById('contact');
+  const contactSuccessNote = document.getElementById('contact-success-note');
+  const contactErrorNote = document.getElementById('contact-error-note');
+  const contactInfoNote = document.getElementById('contact-info-note');
+  const contactVerifyWrap = document.getElementById('contact-verify-wrap');
+  const contactVerifyCode = document.getElementById('contact-verify-code');
+  const contactForm = document.getElementById('contact-form');
+  let successFadeTimer = null;
+  let successHideTimer = null;
+  let verifiedEmail = '';
+  let verificationRequestedFor = '';
+
+  if (!infoBox || !infoTitle || !infoText) return;
+
+  {% if lang == 'ar' %}
+  const infoMap = {
+    features: { title: 'الميزات', text: 'منصة DroneSec تقدم مراقبة مباشرة، تنبيهات ذكية، وتحليلات تساعد فريقك على اتخاذ قرارات امنية اسرع.' },
+    pricing: { title: 'الاسعار', text: 'لدينا خطط مرنة حسب حجم عملياتك. يمكنك البدء بخطة اساسية ثم التوسع عند زيادة عدد المواقع او الطائرات.' },
+    security: { title: 'الامن', text: 'نطبق ضوابط امن متعددة الطبقات تشمل حماية الوصول، تشفير البيانات، وسجلات متابعة للعمليات المهمة.' },
+    about: { title: 'من نحن', text: 'DroneSec تركز على تمكين المؤسسات من حماية مواقعها عبر مراقبة جوية ذكية وسهلة الاستخدام.' },
+    blog: { title: 'المدونة', text: 'نشارك في المدونة نصائح تشغيلية، تحديثات المنتج، وافضل الممارسات في المراقبة الامنية.' },
+    careers: { title: 'الوظائف', text: 'نبحث باستمرار عن كفاءات في مجالات الامن، التحليل، وتشغيل الانظمة الذكية.' },
+    docs: { title: 'التوثيق', text: 'التوثيق يحتوي على ادلة الاعداد والاستخدام اليومي، مع خطوات واضحة للفرق التقنية والامنية.' },
+    support: { title: 'الدعم', text: 'فريق الدعم متاح لمساعدتك في حل المشاكل الفنية وتوجيهك لافضل اعدادات التشغيل.' },
+    contact: { title: 'اتصل بنا', text: 'للاستفسارات العامة او التجارية، تواصل معنا عبر قنوات الاتصال الرسمية الخاصة بـ DroneSec.' },
+    privacy: { title: 'سياسة الخصوصية', text: 'سياسة الخصوصية توضح كيف نتعامل مع البيانات ونحافظ على سريتها وحقوق المستخدمين.' },
+    terms: { title: 'شروط الخدمة', text: 'شروط الخدمة تشرح قواعد الاستخدام، المسؤوليات، ونطاق التزامات المنصة.' },
+    compliance: { title: 'الامتثال', text: 'نعمل على دعم متطلبات الامتثال عبر ممارسات تشغيل واضحة وسجلات قابلة للتدقيق.' }
+  };
+  {% elif lang == 'fr' %}
+  const infoMap = {
+    features: { title: 'Fonctionnalites', text: 'DroneSec offre la surveillance en direct, des alertes intelligentes et des analyses pour accelerer la prise de decision securite.' },
+    pricing: { title: 'Tarification', text: 'Des plans flexibles selon la taille de vos operations. Vous pouvez commencer simple puis evoluer selon vos besoins.' },
+    security: { title: 'Securite', text: 'Nous appliquons des controles multicouches: gestion des acces, chiffrement des donnees et traçabilite des actions.' },
+    about: { title: 'A propos', text: 'DroneSec aide les entreprises a securiser leurs sites avec une surveillance aerienne intelligente et pratique.' },
+    blog: { title: 'Blog', text: 'Le blog partage des conseils operationnels, des nouveautes produit et des bonnes pratiques de securite.' },
+    careers: { title: 'Carrieres', text: 'Nous recrutons regulierement des profils en securite, analyse et exploitation de systemes intelligents.' },
+    docs: { title: 'Documentation', text: 'La documentation couvre la configuration, l usage quotidien et les flux de travail pour les equipes techniques.' },
+    support: { title: 'Support', text: 'L equipe support vous accompagne pour resoudre les problemes techniques et optimiser votre configuration.' },
+    contact: { title: 'Contact', text: 'Pour toute demande commerciale ou generale, contactez-nous via les canaux officiels DroneSec.' },
+    privacy: { title: 'Politique de confidentialite', text: 'Cette politique explique comment les donnees sont traitees et comment les droits utilisateurs sont proteges.' },
+    terms: { title: 'Conditions d utilisation', text: 'Les conditions definissent les regles d usage, les responsabilites et les engagements du service.' },
+    compliance: { title: 'Conformite', text: 'Nous soutenons les besoins de conformite grace a des processus clairs et des journaux exploitables.' }
+  };
+  {% else %}
+  const infoMap = {
+    features: { title: 'Features', text: 'DroneSec provides live monitoring, smart alerts, and practical analytics to help security teams respond faster.' },
+    pricing: { title: 'Pricing', text: 'Flexible plans are available based on your operation size, with room to scale as your fleet grows.' },
+    security: { title: 'Security', text: 'We use layered controls including access protection, data encryption, and clear operational traceability.' },
+    about: { title: 'About', text: 'DroneSec helps organizations secure sites through intelligent, easy-to-operate aerial monitoring.' },
+    blog: { title: 'Blog', text: 'Our blog shares product updates, operational tips, and best practices for modern security teams.' },
+    careers: { title: 'Careers', text: 'We are regularly hiring across security, analytics, and intelligent system operations roles.' },
+    docs: { title: 'Documentation', text: 'Documentation includes setup and day-to-day usage guides for both technical and security teams.' },
+    support: { title: 'Support', text: 'Our support team helps you solve technical issues and tune your platform configuration.' },
+    contact: { title: 'Contact', text: 'For general or commercial inquiries, contact us through official DroneSec communication channels.' },
+    privacy: { title: 'Privacy Policy', text: 'This explains how data is handled and how user privacy rights are protected.' },
+    terms: { title: 'Terms of Service', text: 'These terms describe usage rules, responsibilities, and service commitments.' },
+    compliance: { title: 'Compliance', text: 'We support compliance needs with clear processes and audit-friendly operational records.' }
+  };
+  {% endif %}
+
+  const scheduleSuccessFade = function () {
+    if (!contactSuccessNote) return;
+
+    window.clearTimeout(successFadeTimer);
+    window.clearTimeout(successHideTimer);
+
+    contactSuccessNote.classList.remove('fade-out');
+
+    successFadeTimer = window.setTimeout(function () {
+      contactSuccessNote.classList.add('fade-out');
+    }, 2200);
+
+    successHideTimer = window.setTimeout(function () {
+      contactSuccessNote.classList.add('is-hidden');
+      contactSuccessNote.classList.remove('fade-out');
+    }, 3900);
+  };
+
+  {% if lang == 'ar' %}
+  const contactMessages = {
+    fillAll: 'يرجى تعبئة الاسم والبريد الالكتروني والرسالة.',
+    invalidEmail: 'يرجى ادخال بريد الكتروني صحيح يحتوي على @ واسم نطاق.',
+    verifyBeforeSend: 'قبل الارسال يجب التحقق من البريد.',
+    codeSent: 'تم ارسال رمز التحقق. افحص بريدك ثم ادخل الرمز.',
+    enterCodeAndSendAgain: 'ادخل رمز التحقق ثم اضغط ارسال مرة اخرى.',
+    codeFormat: 'رمز التحقق يجب ان يكون 6 ارقام.',
+    emailVerified: 'تم التحقق من البريد بنجاح. جاري ارسال رسالتك...',
+    codeSendError: 'تعذر ارسال رمز التحقق حاليا. حاول مرة اخرى.',
+    verifyError: 'تعذر التحقق من الرمز حاليا. حاول مرة اخرى.',
+    timeout: 'تأخر الارسال اكثر من المتوقع. يرجى المحاولة مرة اخرى.',
+    sendError: 'تعذر ارسال الرسالة حاليا. يرجى المحاولة بعد قليل.'
+  };
+  {% elif lang == 'fr' %}
+  const contactMessages = {
+    fillAll: 'Veuillez remplir votre nom, e-mail et message.',
+    invalidEmail: 'Veuillez saisir un e-mail valide avec @ et un domaine.',
+    verifyBeforeSend: "Vous devez verifier l'e-mail avant l'envoi.",
+    codeSent: 'Code de verification envoye. Verifiez votre e-mail puis saisissez le code.',
+    enterCodeAndSendAgain: "Saisissez le code puis cliquez encore sur Envoyer.",
+    codeFormat: 'Le code doit contenir 6 chiffres.',
+    emailVerified: 'E-mail verifie avec succes. Envoi du message...',
+    codeSendError: "Impossible d'envoyer le code pour le moment. Reessayez.",
+    verifyError: "Impossible de verifier le code pour le moment. Reessayez.",
+    timeout: "L'envoi prend trop de temps. Veuillez reessayer.",
+    sendError: "Le message n'a pas pu etre envoye pour le moment. Veuillez reessayer."
+  };
+  {% else %}
+  const contactMessages = {
+    fillAll: 'Please fill in your name, email, and message.',
+    invalidEmail: 'Please enter a valid email address with @ and a domain.',
+    verifyBeforeSend: 'You must verify the email before sending.',
+    codeSent: 'Verification code sent. Check your email and enter the code.',
+    enterCodeAndSendAgain: 'Enter the verification code then click Send again.',
+    codeFormat: 'Verification code must be 6 digits.',
+    emailVerified: 'Email verified successfully. Sending your message...',
+    codeSendError: 'Could not send verification code right now. Please try again.',
+    verifyError: 'Could not verify the code right now. Please try again.',
+    timeout: 'Sending is taking too long. Please try again.',
+    sendError: 'Message could not be sent right now. Please try again in a moment.'
+  };
+  {% endif %}
+
+  const normalizeEmail = function (value) {
+    return (value || '').trim().toLowerCase();
+  };
+
+  const hideNote = function (noteEl) {
+    if (noteEl) {
+      noteEl.classList.add('is-hidden');
+    }
+  };
+
+  const showNote = function (noteEl, text) {
+    if (!noteEl) return;
+    noteEl.textContent = text || '';
+    noteEl.classList.remove('is-hidden');
+  };
+
+  const setButtonLoading = function (button, label) {
+    if (!button) return '';
+    const originalHtml = button.innerHTML;
+    button.disabled = true;
+    button.classList.add('is-loading');
+    button.innerHTML = '<i class="fa fa-spinner fa-spin"></i> ' + label;
+    return originalHtml;
+  };
+
+  const restoreButton = function (button, originalHtml) {
+    if (!button) return;
+    button.disabled = false;
+    button.classList.remove('is-loading');
+    button.innerHTML = originalHtml;
+  };
+
+  const clearVerificationState = function () {
+    verifiedEmail = '';
+    verificationRequestedFor = '';
+    if (contactVerifyCode) {
+      contactVerifyCode.value = '';
+    }
+    if (contactVerifyWrap) {
+      contactVerifyWrap.classList.add('is-hidden');
+    }
+  };
+
+  const showError = function (text) {
+    if (contactFormWrap) {
+      contactFormWrap.classList.add('active');
+    }
+    hideNote(contactInfoNote);
+    hideNote(contactSuccessNote);
+    showNote(contactErrorNote, text);
+  };
+
+  const showInfo = function (text) {
+    hideNote(contactErrorNote);
+    showNote(contactInfoNote, text);
+  };
+
+  const isLikelyValidEmail = function (value) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value);
+  };
+
+  const postContactAction = async function (formData, timeoutMs) {
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(function () {
+      controller.abort();
+    }, timeoutMs || 15000);
+
+    try {
+      const response = await fetch(window.location.pathname, {
+        method: 'POST',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: formData,
+        credentials: 'same-origin',
+        signal: controller.signal
+      });
+
+      let payload = {};
+      try {
+        payload = await response.json();
+      } catch (error) {
+        payload = {};
+      }
+
+      return {
+        ok: Boolean(response.ok && payload.ok),
+        status: response.status,
+        message: payload.message || '',
+      };
+    } finally {
+      window.clearTimeout(timeoutId);
+    }
+  };
+
+  document.querySelectorAll('.footer-info-link').forEach(function (link) {
+    link.addEventListener('click', function (event) {
+      event.preventDefault();
+      const topic = link.getAttribute('data-topic');
+      const info = infoMap[topic];
+      if (!info) return;
+      infoTitle.textContent = info.title;
+      infoText.textContent = info.text;
+      infoBox.classList.add('active');
+      infoBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+  });
+
+  document.addEventListener('click', function (event) {
+    if (!infoBox.classList.contains('active')) return;
+    const clickedInsideInfo = infoBox.contains(event.target);
+    const clickedInfoLink = event.target.closest('.footer-info-link');
+    if (!clickedInsideInfo && !clickedInfoLink) {
+      infoBox.classList.remove('active');
+    }
+  });
+
+  if (contactNavLink && contactFormWrap && contactSection) {
+    contactNavLink.addEventListener('click', function (event) {
+      event.preventDefault();
+      contactSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      contactFormWrap.classList.add('active');
+      clearVerificationState();
+      if (contactSuccessNote) {
+        window.clearTimeout(successFadeTimer);
+        window.clearTimeout(successHideTimer);
+        contactSuccessNote.classList.remove('fade-out');
+        contactSuccessNote.classList.add('is-hidden');
+      }
+      if (contactErrorNote) {
+        contactErrorNote.classList.add('is-hidden');
+      }
+      if (contactInfoNote) {
+        contactInfoNote.classList.add('is-hidden');
+      }
+
+      const firstField = contactFormWrap.querySelector('input[name="name"]');
+      if (firstField) {
+        window.setTimeout(function () {
+          firstField.focus();
+        }, 250);
+      }
+    });
+  }
+
+  if (contactForm && contactFormWrap) {
+    contactForm.addEventListener('submit', async function (event) {
+      event.preventDefault();
+
+      const submitButton = contactForm.querySelector('button[type="submit"]');
+      const originalButtonHtml = submitButton ? submitButton.innerHTML : '';
+      const sendingLabel = (submitButton && submitButton.dataset && submitButton.dataset.sendingLabel) || 'Sending...';
+      const csrfField = contactForm.querySelector('input[name="csrfmiddlewaretoken"]');
+      const csrfTokenValue = csrfField ? csrfField.value : '';
+      const nameField = contactForm.querySelector('input[name="name"]');
+      const emailField = contactForm.querySelector('input[name="email"]');
+      const messageField = contactForm.querySelector('textarea[name="message"]');
+
+      if (contactErrorNote) {
+        contactErrorNote.classList.add('is-hidden');
+      }
+      if (contactSuccessNote) {
+        contactSuccessNote.classList.add('is-hidden');
+      }
+      if (contactInfoNote) {
+        contactInfoNote.classList.add('is-hidden');
+      }
+
+      const nameValue = nameField ? nameField.value.trim() : '';
+      const emailValue = emailField ? emailField.value.trim() : '';
+      const messageValue = messageField ? messageField.value.trim() : '';
+      const normalizedEmail = normalizeEmail(emailValue);
+
+      if (!nameValue || !emailValue || !messageValue) {
+        showError(contactMessages.fillAll);
+        return;
+      }
+
+      if (!isLikelyValidEmail(normalizedEmail)) {
+        showError(contactMessages.invalidEmail);
+        if (emailField) {
+          emailField.focus();
+        }
+        return;
+      }
+
+      if (verifiedEmail !== normalizedEmail) {
+        showInfo(contactMessages.verifyBeforeSend);
+
+        if (verificationRequestedFor === normalizedEmail) {
+          if (contactVerifyWrap) {
+            contactVerifyWrap.classList.remove('is-hidden');
+          }
+          const codeValue = (contactVerifyCode ? contactVerifyCode.value : '').trim();
+          if (!/^\d{6}$/.test(codeValue)) {
+            showInfo(contactMessages.enterCodeAndSendAgain);
+            if (contactVerifyCode) {
+              contactVerifyCode.focus();
+            }
+            return;
+          }
+
+          const verifyPayload = new FormData();
+          verifyPayload.append('form_type', 'contact_verify_code');
+          verifyPayload.append('email', normalizedEmail);
+          verifyPayload.append('verification_code', codeValue);
+          if (csrfTokenValue) {
+            verifyPayload.append('csrfmiddlewaretoken', csrfTokenValue);
+          }
+
+          const verifyResult = await postContactAction(verifyPayload, 15000);
+          if (!verifyResult.ok) {
+            showError(verifyResult.message || contactMessages.verifyError);
+            return;
+          }
+
+          verifiedEmail = normalizedEmail;
+          if (contactVerifyWrap) {
+            contactVerifyWrap.classList.add('is-hidden');
+          }
+          showInfo(verifyResult.message || contactMessages.emailVerified);
+        } else {
+          const requestCodeHtml = setButtonLoading(submitButton, sendingLabel);
+          try {
+            const requestPayload = new FormData();
+            requestPayload.append('form_type', 'contact_request_code');
+            requestPayload.append('email', normalizedEmail);
+            if (csrfTokenValue) {
+              requestPayload.append('csrfmiddlewaretoken', csrfTokenValue);
+            }
+            const requestResult = await postContactAction(requestPayload, 15000);
+
+            if (!requestResult.ok) {
+              showError(requestResult.message || contactMessages.codeSendError);
+              return;
+            }
+
+            verificationRequestedFor = normalizedEmail;
+            verifiedEmail = '';
+            if (contactVerifyWrap) {
+              contactVerifyWrap.classList.remove('is-hidden');
+            }
+            if (contactVerifyCode) {
+              contactVerifyCode.value = '';
+              contactVerifyCode.focus();
+            }
+            showInfo(requestResult.message || contactMessages.codeSent);
+            return;
+          } catch (error) {
+            showError(error && error.name === 'AbortError' ? contactMessages.timeout : contactMessages.codeSendError);
+            return;
+          } finally {
+            restoreButton(submitButton, requestCodeHtml || originalButtonHtml);
+          }
+        }
+      }
+
+      const sendingHtml = setButtonLoading(submitButton, sendingLabel);
+
+      try {
+        const sendResult = await postContactAction(new FormData(contactForm), 15000);
+
+        if (sendResult.ok) {
+          contactForm.reset();
+          contactFormWrap.classList.remove('active');
+          clearVerificationState();
+          if (contactSuccessNote) {
+            contactSuccessNote.textContent = sendResult.message || 'Message sent successfully.';
+            contactSuccessNote.classList.remove('is-hidden');
+            scheduleSuccessFade();
+          }
+          if (contactErrorNote) {
+            contactErrorNote.classList.add('is-hidden');
+          }
+          if (contactInfoNote) {
+            contactInfoNote.classList.add('is-hidden');
+          }
+        } else {
+          contactFormWrap.classList.add('active');
+          showError(sendResult.message || contactMessages.sendError);
+        }
+      } catch (error) {
+        showError(error && error.name === 'AbortError' ? contactMessages.timeout : contactMessages.sendError);
+      } finally {
+        restoreButton(submitButton, sendingHtml || originalButtonHtml);
+      }
+    });
+  }
+
+  if (contactSuccessNote && !contactSuccessNote.classList.contains('is-hidden') && contactSuccessNote.textContent.trim()) {
+    scheduleSuccessFade();
+  }
+})();
+</script>
+
+{% endwith %}
+</body>
+</html>

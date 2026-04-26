@@ -1,0 +1,74 @@
+<div
+  id="drone-stop-modal"
+  class="drone-stop-modal"
+  data-prompt-template="{% if lang == 'ar' %}هل تريد ايقاف الطائرة __DRONE__؟{% elif lang == 'fr' %}Voulez-vous arreter le drone __DRONE__ ?{% else %}Do you want to stop drone __DRONE__?{% endif %}"
+  hidden
+>
+  <div class="drone-stop-modal-backdrop" data-drone-stop-close></div>
+  <div class="drone-stop-modal-card glass" role="dialog" aria-modal="true" aria-labelledby="drone-stop-modal-title">
+    <div class="drone-stop-modal-head">
+      <i class="fa fa-triangle-exclamation text-red"></i>
+      <h3 id="drone-stop-modal-title">{% if lang == 'ar' %}تأكيد ايقاف الطائرة{% elif lang == 'fr' %}Confirmer l'arret du drone{% else %}Confirm Drone Stop{% endif %}</h3>
+    </div>
+    <p id="drone-stop-modal-text" class="text-muted"></p>
+    <div class="drone-stop-modal-actions">
+      <button type="button" class="btn btn-outline" data-drone-stop-close>
+        {% if lang == 'ar' %}الغاء{% elif lang == 'fr' %}Annuler{% else %}Cancel{% endif %}
+      </button>
+      <button type="button" class="btn btn-danger" id="drone-stop-modal-confirm">
+        <i class="fa fa-stop"></i> {% if lang == 'ar' %}ايقاف الطائرة{% elif lang == 'fr' %}Arreter le drone{% else %}Stop Drone{% endif %}
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const modal = document.getElementById('drone-stop-modal');
+  if (!modal || modal.dataset.bound === '1') return;
+  modal.dataset.bound = '1';
+
+  const modalText = document.getElementById('drone-stop-modal-text');
+  const confirmBtn = document.getElementById('drone-stop-modal-confirm');
+  const promptTemplate = modal.dataset.promptTemplate || 'Do you want to stop this drone?';
+  let pendingForm = null;
+
+  function closeModal() {
+    modal.hidden = true;
+    pendingForm = null;
+  }
+
+  function openModal(formEl, droneName) {
+    pendingForm = formEl;
+    const safeName = droneName || '';
+    modalText.textContent = promptTemplate.replace('__DRONE__', safeName);
+    modal.hidden = false;
+  }
+
+  document.addEventListener('click', function (event) {
+    const trigger = event.target.closest('.js-drone-stop-trigger');
+    if (trigger) {
+      event.preventDefault();
+      openModal(trigger.closest('form'), trigger.dataset.droneName || '');
+      return;
+    }
+
+    if (event.target.closest('[data-drone-stop-close]')) {
+      closeModal();
+    }
+  });
+
+  confirmBtn.addEventListener('click', function () {
+    if (pendingForm) {
+      pendingForm.submit();
+    }
+    closeModal();
+  });
+
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape' && !modal.hidden) {
+      closeModal();
+    }
+  });
+})();
+</script>

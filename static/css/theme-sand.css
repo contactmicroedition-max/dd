@@ -1,0 +1,56 @@
+/* DroneSec - Sandstone Soft Theme (muted, non-dark) */
+
+:root {
+  --bg-base:       #f1ece4;
+  --bg-surface:    #f8f3eb;
+  --bg-card:       rgba(248, 243, 235, 0.92);
+  --bg-hover:      rgba(157, 126, 92, 0.08);
+
+  --border:        rgba(151, 124, 97, 0.2);
+  --border-hover:  rgba(151, 124, 97, 0.36);
+
+  --blue:          #8a6d4e;
+  --blue-dim:      rgba(138, 109, 78, 0.12);
+  --blue-glow:     0 0 18px rgba(138, 109, 78, 0.12);
+
+  --red:           #b45b4d;
+  --red-dim:       rgba(180, 91, 77, 0.12);
+  --green:         #6b8a64;
+  --green-dim:     rgba(107, 138, 100, 0.12);
+  --yellow:        #b8944d;
+  --yellow-dim:    rgba(184, 148, 77, 0.13);
+  --orange:        #b37a4d;
+  --purple:        #8a7588;
+  --purple-dim:    rgba(138, 117, 136, 0.12);
+
+  --text-primary:  #3a3025;
+  --text-secondary:#6a5d4f;
+  --text-muted:    #948677;
+
+  --glass-bg:      rgba(248, 243, 235, 0.84);
+  --glass-border:  rgba(151, 124, 97, 0.26);
+  --glass-blur:    blur(10px);
+
+  --shadow:        0 6px 18px rgba(64, 45, 25, 0.11);
+  --shadow-glow:   0 0 14px rgba(138, 109, 78, 0.08);
+}
+
+body::before {
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 10%, rgba(184,148,77,0.05) 0%, transparent 60%),
+    radial-gradient(ellipse 62% 50% at 82% 82%, rgba(138,117,136,0.04) 0%, transparent 62%);
+}
+
+#sidebar {
+  background: rgba(248, 243, 235, 0.97);
+  border-right-color: var(--border);
+}
+
+.topbar {
+  background: rgba(241, 236, 228, 0.95);
+}
+
+.form-input {
+  background: #fcf8f1;
+  border: 1px solid var(--border);
+}

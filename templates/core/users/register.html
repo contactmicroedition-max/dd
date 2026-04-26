@@ -1,0 +1,186 @@
+{% extends 'base.html' %}
+{% block title %}{% if request.session.preferred_language == 'ar' %}طلب وصول{% elif request.session.preferred_language == 'fr' %}Demande d'acces{% else %}Request Access{% endif %}{% endblock %}
+{% block auth_content %}
+{% with lang=request.session.preferred_language|default:'en' %}
+<div class="auth-page">
+  <div class="auth-bg">
+    <div class="auth-grid"></div>
+    <div class="auth-orb orb1"></div>
+    <div class="auth-orb orb2"></div>
+  </div>
+  <div class="auth-card auth-card-wide glass">
+    <div class="auth-logo">
+      <div class="logo-icon-lg"><i class="fa fa-shield-halved"></i></div>
+      <h1>Drone<span class="neon">Sec</span></h1>
+      <p class="auth-sub">{% if lang == 'ar' %}طلب وصول وكيل{% elif lang == 'fr' %}Demander un acces agent{% else %}Request Agent Access{% endif %}</p>
+    </div>
+
+    <div class="pending-notice">
+      <i class="fa fa-clock"></i>
+      {% if lang == 'ar' %}الحسابات الجديدة تتطلب <strong>موافقة المشرف</strong> قبل منح الوصول.{% elif lang == 'fr' %}Les nouveaux comptes necessitent une <strong>approbation administrateur</strong> avant d'obtenir l'acces.{% else %}New accounts require <strong>admin approval</strong> before access is granted.{% endif %}
+    </div>
+
+    <form method="post" id="register-form">
+      {% csrf_token %}
+      <input type="hidden" name="recaptcha_token" id="recaptcha_token" />
+      {% if form.non_field_errors %}
+        <div class="form-error-banner"><i class="fa fa-exclamation-circle"></i> {{ form.non_field_errors.0 }}</div>
+      {% endif %}
+      <input type="hidden" name="action" value="submit_request" />
+      <div class="form-error-banner" id="recaptcha-client-error" style="display:none;"></div>
+
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label><i class="fa fa-user"></i> {% if lang == 'ar' %}الاسم{% elif lang == 'fr' %}Prenom{% else %}First Name{% endif %}</label>
+          {{ form.first_name }}
+          {% if form.first_name.errors %}<span class="field-error">{{ form.first_name.errors.0 }}</span>{% endif %}
+        </div>
+        <div class="form-group">
+          <label><i class="fa fa-user"></i> {% if lang == 'ar' %}اللقب{% elif lang == 'fr' %}Nom{% else %}Last Name{% endif %}</label>
+          {{ form.last_name }}
+          {% if form.last_name.errors %}<span class="field-error">{{ form.last_name.errors.0 }}</span>{% endif %}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label><i class="fa fa-at"></i> {% if lang == 'ar' %}اسم المستخدم{% elif lang == 'fr' %}Nom d'utilisateur{% else %}Username{% endif %}</label>
+        {{ form.username }}
+        {% if form.username.errors %}<span class="field-error">{{ form.username.errors.0 }}</span>{% endif %}
+      </div>
+
+      <div class="form-group">
+        <label><i class="fa fa-envelope"></i> {% if lang == 'ar' %}البريد الالكتروني{% elif lang == 'fr' %}Adresse e-mail{% else %}Email Address{% endif %}</label>
+        {{ form.email }}
+        {% if form.email.errors %}<span class="field-error">{{ form.email.errors.0 }}</span>{% endif %}
+      </div>
+
+      <div class="form-group">
+        <label><i class="fa fa-building"></i> {% if lang == 'ar' %}القسم{% elif lang == 'fr' %}Departement{% else %}Department{% endif %}</label>
+        {{ form.department }}
+      </div>
+
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label><i class="fa fa-flag"></i> {% if lang == 'ar' %}الدولة{% elif lang == 'fr' %}Pays{% else %}Country{% endif %}</label>
+          {{ form.phone_country }}
+          {% if form.phone_country.errors %}<span class="field-error">{{ form.phone_country.errors.0 }}</span>{% endif %}
+        </div>
+        <div class="form-group">
+          <label><i class="fa fa-phone"></i> {% if lang == 'ar' %}الهاتف{% elif lang == 'fr' %}Telephone{% else %}Phone{% endif %}</label>
+          {{ form.phone }}
+          {% if form.phone.errors %}<span class="field-error">{{ form.phone.errors.0 }}</span>{% endif %}
+        </div>
+      </div>
+
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label><i class="fa fa-lock"></i> {% if lang == 'ar' %}كلمة المرور{% elif lang == 'fr' %}Mot de passe{% else %}Password{% endif %}</label>
+          {{ form.password1 }}
+          {% if form.password1.errors %}<span class="field-error">{{ form.password1.errors.0 }}</span>{% endif %}
+        </div>
+        <div class="form-group">
+          <label><i class="fa fa-lock"></i> {% if lang == 'ar' %}تأكيد كلمة المرور{% elif lang == 'fr' %}Confirmer le mot de passe{% else %}Confirm Password{% endif %}</label>
+          {{ form.password2 }}
+          {% if form.password2.errors %}<span class="field-error">{{ form.password2.errors.0 }}</span>{% endif %}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="checkbox-label">
+          {{ form.terms }}
+          {% if lang == 'ar' %}اوافق على <a href="#" class="link-muted">شروط الخدمة</a> و <a href="#" class="link-muted">سياسة الخصوصية</a>{% elif lang == 'fr' %}J'accepte les <a href="#" class="link-muted">conditions d'utilisation</a> et la <a href="#" class="link-muted">politique de confidentialite</a>{% else %}I agree to the <a href="#" class="link-muted">Terms of Service</a> and <a href="#" class="link-muted">Privacy Policy</a>{% endif %}
+        </label>
+        {% if form.terms.errors %}<span class="field-error">{{ form.terms.errors.0 }}</span>{% endif %}
+      </div>
+
+      <!-- reCAPTCHA Widget -->
+      <div class="g-recaptcha" data-sitekey="{{ recaptcha_key }}" data-callback="onRecaptchaSuccess" data-expired-callback="onRecaptchaExpired" style="margin: 16px 0;"></div>
+
+      <button type="submit" class="btn btn-primary btn-full">
+        <i class="fa fa-paper-plane"></i> {% if lang == 'ar' %}ارسال طلب الوصول{% elif lang == 'fr' %}Soumettre la demande d'acces{% else %}Submit Access Request{% endif %}
+      </button>
+    </form>
+    {% if show_email_verification %}
+      <div class="pending-notice" style="margin-top: 16px;">
+        <i class="fa fa-envelope-circle-check"></i>
+        {% if lang == 'ar' %}
+          تم ارسال رمز تحقق الى <strong>{{ pending_email }}</strong>. ادخل الرمز لاكمال طلب الوصول.
+        {% elif lang == 'fr' %}
+          Un code de verification a ete envoye a <strong>{{ pending_email }}</strong>. Entrez-le pour terminer la demande d'acces.
+        {% else %}
+          A verification code was sent to <strong>{{ pending_email }}</strong>. Enter it to complete your access request.
+        {% endif %}
+      </div>
+
+      <form method="post" action="{% url 'core:register_verify_email_code' %}" class="mt-3">
+        {% csrf_token %}
+        <div class="form-group">
+          <label><i class="fa fa-key"></i> {% if lang == 'ar' %}رمز التحقق{% elif lang == 'fr' %}Code de verification{% else %}Verification Code{% endif %}</label>
+          <input
+            type="text"
+            name="email_verification_code"
+            class="form-input"
+            inputmode="numeric"
+            maxlength="6"
+            pattern="[0-9]{6}"
+            placeholder="{% if lang == 'ar' %}ادخل رمز 6 ارقام{% elif lang == 'fr' %}Entrez le code a 6 chiffres{% else %}Enter 6-digit code{% endif %}"
+            required
+          />
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-full">
+          <i class="fa fa-check"></i> {% if lang == 'ar' %}تحقق واكمل الطلب{% elif lang == 'fr' %}Verifier et terminer la demande{% else %}Verify & Complete Request{% endif %}
+        </button>
+      </form>
+
+      <div class="form-grid-2" style="margin-top: 12px;">
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="resend_email_code" />
+          <button type="submit" class="btn btn-secondary btn-full">
+            <i class="fa fa-rotate-right"></i> {% if lang == 'ar' %}اعادة ارسال الرمز{% elif lang == 'fr' %}Renvoyer le code{% else %}Resend Code{% endif %}
+          </button>
+        </form>
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="restart_register" />
+          <button type="submit" class="btn btn-danger btn-full">
+            <i class="fa fa-xmark"></i> {% if lang == 'ar' %}البدء من جديد{% elif lang == 'fr' %}Recommencer{% else %}Start Over{% endif %}
+          </button>
+        </form>
+      </div>
+    {% endif %}
+
+    <p class="auth-footer">{% if lang == 'ar' %}لديك حساب بالفعل؟{% elif lang == 'fr' %}Vous avez deja un compte ?{% else %}Already have an account?{% endif %} <a href="{% url 'core:login' %}">{% if lang == 'ar' %}تسجيل الدخول{% elif lang == 'fr' %}Se connecter{% else %}Sign In{% endif %}</a></p>
+  </div>
+</div>
+
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+<script>
+function onRecaptchaSuccess(token) {
+  document.getElementById('recaptcha_token').value = token;
+}
+
+function onRecaptchaExpired() {
+  document.getElementById('recaptcha_token').value = '';
+}
+
+document.getElementById('register-form').addEventListener('submit', function(e) {
+  const errorBox = document.getElementById('recaptcha-client-error');
+  if (errorBox) {
+    errorBox.style.display = 'none';
+    errorBox.textContent = '';
+  }
+
+  const token = document.getElementById('recaptcha_token').value.trim();
+  if (!token) {
+    e.preventDefault();
+    if (errorBox) {
+      errorBox.innerHTML = '<i class="fa fa-exclamation-circle"></i> {% if lang == "ar" %}يرجى اكمال reCAPTCHA قبل ارسال الطلب.{% elif lang == "fr" %}Veuillez completer le reCAPTCHA avant d envoyer la demande.{% else %}Please complete reCAPTCHA before submitting.{% endif %}';
+      errorBox.style.display = 'block';
+    }
+  }
+});
+</script>
+{% endwith %}
+{% endblock %}

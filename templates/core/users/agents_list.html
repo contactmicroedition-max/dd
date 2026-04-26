@@ -1,0 +1,237 @@
+{% extends 'base.html' %}
+{% block title %}{% if request.user.language == 'ar' %}ادارة المستخدمين والوكلاء{% elif request.user.language == 'fr' %}Gestion des utilisateurs et agents{% else %}Users & Agents Management{% endif %}{% endblock %}
+{% block page_title %}
+{% with lang=request.user.language|default:'en' %}
+<i class="fa fa-users"></i> {% if lang == 'ar' %}ادارة المستخدمين والوكلاء{% elif lang == 'fr' %}Gestion des utilisateurs et agents{% else %}Users & Agents Management{% endif %}
+{% endwith %}
+{% endblock %}
+{% block content %}
+{% with lang=request.user.language|default:'en' %}
+<div class="page-section">
+  {% if users %}
+  <div class="stats-grid stats-grid-3 mb-20">
+    <div class="stat-card glass">
+      <div class="stat-icon"><i class="fa fa-users"></i></div>
+      <div class="stat-content">
+        <div class="stat-label">{% if lang == 'ar' %}اجمالي المستخدمين{% elif lang == 'fr' %}Total utilisateurs{% else %}Total Users{% endif %}</div>
+        <div class="stat-value">{{ total_users }}</div>
+      </div>
+    </div>
+    <div class="stat-card glass">
+      <div class="stat-icon" style="color: #a855f7"><i class="fa fa-crown"></i></div>
+      <div class="stat-content">
+        <div class="stat-label">{% if lang == 'ar' %}المشرفون{% elif lang == 'fr' %}Admins{% else %}Admins{% endif %}</div>
+        <div class="stat-value">{{ total_admins }}</div>
+      </div>
+    </div>
+    <div class="stat-card glass">
+      <div class="stat-icon" style="color: var(--green)"><i class="fa fa-user-check"></i></div>
+      <div class="stat-content">
+        <div class="stat-label">{% if lang == 'ar' %}الوكلاء النشطون{% elif lang == 'fr' %}Agents actifs{% else %}Active Agents{% endif %}</div>
+        <div class="stat-value">{{ active_agents }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-card glass">
+    <div class="table-header">
+      <span>
+        {% if lang == 'ar' %}
+          {{ total_users }} مستخدم في النظام
+        {% elif lang == 'fr' %}
+          {{ total_users }} utilisateur{{ total_users|pluralize }} dans le systeme
+        {% else %}
+          {{ total_users }} user{{ total_users|pluralize }} in system
+        {% endif %}
+      </span>
+    </div>
+    <table class="ds-table">
+      <thead>
+        <tr>
+          <th>{% if lang == 'ar' %}المستخدم{% elif lang == 'fr' %}Utilisateur{% else %}User{% endif %}</th>
+          <th>{% if lang == 'ar' %}الحالة{% elif lang == 'fr' %}Statut{% else %}Status{% endif %}</th>
+          <th>{% if lang == 'ar' %}اخر نشاط{% elif lang == 'fr' %}Derniere activite{% else %}Last Activity{% endif %}</th>
+          <th>{% if lang == 'ar' %}القسم{% elif lang == 'fr' %}Departement{% else %}Department{% endif %}</th>
+          <th>{% if lang == 'ar' %}الدور{% elif lang == 'fr' %}Role{% else %}Role{% endif %}</th>
+          <th>{% if lang == 'ar' %}الاعتماد{% elif lang == 'fr' %}Approuve{% else %}Approved{% endif %}</th>
+          <th>{% if lang == 'ar' %}الاجراءات{% elif lang == 'fr' %}Actions{% else %}Actions{% endif %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for user in users %}
+        <tr class="agent-row {% if user.role == 'admin' and not can_manage_admin_accounts %}admin-row-collapsible{% endif %}" data-user-role="{{ user.role }}">
+          <!-- User Info -->
+          <td>
+            <div class="cell-user">
+              {% if user.avatar %}
+                <img src="{{ user.avatar.url }}" class="user-avatar-sm" alt="{{ user.get_full_name }}" />
+              {% else %}
+                <div class="user-avatar-placeholder sm">{{ user.first_name|first|upper }}{{ user.last_name|first|upper }}</div>
+              {% endif %}
+              <div>
+                <div class="fw-600">{{ user.get_full_name }}</div>
+                <div class="text-muted">@{{ user.username }}</div>
+                {% if user.role == 'admin' and not can_manage_admin_accounts %}
+                  <a href="{% url 'core:inspect_agent' user.pk %}" class="admin-inline-inspect" title="{% if lang == 'ar' %}فحص{% elif lang == 'fr' %}Inspecter{% else %}Inspect{% endif %}">
+                    <i class="fa fa-magnifying-glass"></i>
+                    <span>{% if lang == 'ar' %}فحص{% elif lang == 'fr' %}Inspecter{% else %}Inspect{% endif %}</span>
+                  </a>
+                {% endif %}
+              </div>
+            </div>
+          </td>
+          
+          <!-- Activity Status -->
+          <td>
+            <span class="badge {{ user.activity_status.badge_class }}">
+              {% if user.activity_status.status == 'active' %}
+                {% if lang == 'ar' %}نشط{% elif lang == 'fr' %}Actif{% else %}Active{% endif %}
+              {% elif user.activity_status.status == 'idle' %}
+                {% if lang == 'ar' %}خامل{% elif lang == 'fr' %}Inactif{% else %}Idle{% endif %}
+              {% elif user.activity_status.status == 'offline' %}
+                {% if lang == 'ar' %}غير متصل{% elif lang == 'fr' %}Hors ligne{% else %}Offline{% endif %}
+              {% else %}
+                {% if lang == 'ar' %}غير معروف{% elif lang == 'fr' %}Inconnu{% else %}Unknown{% endif %}
+              {% endif %}
+            </span>
+          </td>
+          
+          <!-- Last Activity Time -->
+          <td class="text-muted">
+            {% if user.activity_status.time_ago %}
+              {{ user.activity_status.time_ago }}
+            {% else %}
+              {{ user.activity_status.label }}
+            {% endif %}
+          </td>
+          
+          <!-- Department -->
+          <td>{{ user.department|default:"—" }}</td>
+          
+          <!-- Role -->
+          <td>
+            <span class="role-badge role-{{ user.role }}">{% if user.role == 'admin' %}{% if lang == 'ar' %}مشرف{% elif lang == 'fr' %}Admin{% else %}Admin{% endif %}{% else %}{% if lang == 'ar' %}وكيل{% elif lang == 'fr' %}Agent{% else %}Agent{% endif %}{% endif %}</span>
+          </td>
+          
+          <!-- Approved Status -->
+          <td>
+            {% if user.is_approved %}
+              <span class="badge badge-success"><i class="fa fa-check"></i> {% if lang == 'ar' %}معتمد{% elif lang == 'fr' %}Approuve{% else %}Approved{% endif %}</span>
+            {% else %}
+              <span class="badge badge-warning"><i class="fa fa-clock"></i> {% if lang == 'ar' %}معلّق{% elif lang == 'fr' %}En attente{% else %}Pending{% endif %}</span>
+            {% endif %}
+          </td>
+          
+          <!-- Actions -->
+          <td>
+            <div class="action-btns-compact">
+              {% if user.role == 'agent' %}
+                <a href="{% url 'core:inspect_agent' user.pk %}" class="btn btn-sm btn-info" title="{% if lang == 'ar' %}فحص{% elif lang == 'fr' %}Inspecter{% else %}Inspect{% endif %}">
+                  <i class="fa fa-magnifying-glass"></i>
+                </a>
+                <a href="{% url 'core:elevate_agent_to_admin' user.pk %}" class="btn btn-sm btn-primary" title="{% if lang == 'ar' %}ترقية الى مشرف{% elif lang == 'fr' %}Promouvoir admin{% else %}Promote to Admin{% endif %}">
+                  <i class="fa fa-arrow-up"></i>
+                </a>
+              {% elif user.role == 'admin' and can_manage_admin_accounts %}
+                <a href="{% url 'core:inspect_agent' user.pk %}" class="btn btn-sm btn-info" title="{% if lang == 'ar' %}فحص{% elif lang == 'fr' %}Inspecter{% else %}Inspect{% endif %}">
+                  <i class="fa fa-magnifying-glass"></i>
+                </a>
+                <a href="{% url 'core:downgrade_admin_to_agent' user.pk %}" class="btn btn-sm btn-warning" title="{% if lang == 'ar' %}خفض الى وكيل{% elif lang == 'fr' %}Retrograder en agent{% else %}Downgrade to Agent{% endif %}">
+                  <i class="fa fa-arrow-down"></i>
+                </a>
+              {% endif %}
+              {% if user.role == 'agent' %}
+                <a href="{% url 'core:remove_agent' user.pk %}" class="btn btn-sm btn-danger" title="{% if lang == 'ar' %}ازالة{% elif lang == 'fr' %}Supprimer{% else %}Remove{% endif %}"
+                   onclick="return confirm('Remove {{ user.get_full_name }}?\n\nThis action permanently deletes the account.')">
+                  <i class="fa fa-trash"></i>
+                </a>
+              {% elif can_manage_admin_accounts and user.role == 'admin' %}
+                <a href="{% url 'core:remove_agent' user.pk %}" class="btn btn-sm btn-danger" title="{% if lang == 'ar' %}ازالة{% elif lang == 'fr' %}Supprimer{% else %}Remove{% endif %}"
+                   onclick="return confirm('Remove {{ user.get_full_name }}?\n\nThis action permanently deletes the account.')">
+                  <i class="fa fa-trash"></i>
+                </a>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state glass">
+    <i class="fa fa-users"></i>
+    <h3>{% if lang == 'ar' %}لا يوجد مستخدمون{% elif lang == 'fr' %}Aucun utilisateur{% else %}No Users{% endif %}</h3>
+    <p>{% if lang == 'ar' %}لا يوجد مستخدمون في النظام بعد.{% elif lang == 'fr' %}Il n'y a pas encore d'utilisateurs dans le systeme.{% else %}There are no users in the system yet.{% endif %}</p>
+  </div>
+  {% endif %}
+</div>
+{% endwith %}
+
+<style>
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 20px; }
+.stat-card { display: flex; align-items: center; gap: 16px; padding: 16px; }
+.stat-icon { font-size: 28px; color: var(--blue); opacity: 0.8; }
+.stat-label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.stat-value { font-size: 24px; font-weight: 700; color: var(--text-primary); }
+.badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+.badge-success { background: var(--green-dim); color: var(--green); }
+.badge-warning { background: var(--yellow-dim); color: var(--yellow); }
+.badge-error { background: var(--red-dim); color: var(--red); }
+.status-active { background: var(--green-dim); color: var(--green); }
+.status-idle { background: var(--yellow-dim); color: var(--yellow); }
+.status-offline { background: var(--red-dim); color: var(--red); }
+.status-unknown { background: var(--border); color: var(--text-muted); }
+.action-btns-compact { display: flex; gap: 6px; }
+.action-btns-compact .btn { padding: 6px 8px; font-size: 11px; }
+.mb-20 { margin-bottom: 20px; }
+
+.admin-row-collapsible .cell-user { cursor: pointer; }
+.admin-inline-inspect {
+  margin-top: 6px;
+  display: none;
+  width: fit-content;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(56, 189, 248, .4);
+  background: rgba(56, 189, 248, .12);
+  color: #7dd3fc;
+  text-decoration: none;
+  font-size: 11px;
+  font-weight: 600;
+}
+.admin-inline-inspect:hover {
+  border-color: rgba(56, 189, 248, .7);
+  background: rgba(56, 189, 248, .2);
+}
+.admin-row-collapsible.show-inline-inspect .admin-inline-inspect { display: inline-flex; }
+</style>
+
+<script>
+  (function () {
+    const rows = Array.from(document.querySelectorAll('tr.admin-row-collapsible'));
+    if (!rows.length) return;
+
+    rows.forEach((row) => {
+      const userCell = row.querySelector('.cell-user');
+      if (!userCell) return;
+
+      userCell.addEventListener('click', (event) => {
+        if (event.target.closest('a')) {
+          return;
+        }
+
+        rows.forEach((other) => {
+          if (other !== row) {
+            other.classList.remove('show-inline-inspect');
+          }
+        });
+
+        row.classList.toggle('show-inline-inspect');
+      });
+    });
+  })();
+</script>
+{% endblock %}

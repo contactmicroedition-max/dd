@@ -1,0 +1,77 @@
+/* ═══════════════════════════════════════════════════════════════
+   DroneSec — Light Professional Theme (CSS Variable Overrides)
+═══════════════════════════════════════════════════════════════ */
+
+:root {
+  --bg-base:       #f8f9fb;
+  --bg-surface:    #ffffff;
+  --bg-card:       rgba(255, 255, 255, 0.9);
+  --bg-hover:      rgba(59, 130, 246, 0.05);
+
+  --border:        rgba(59, 130, 246, 0.15);
+  --border-hover:  rgba(59, 130, 246, 0.3);
+
+  --blue:          #3b82f6;
+  --blue-dim:      rgba(59, 130, 246, 0.1);
+  --blue-glow:     0 0 20px rgba(59, 130, 246, 0.15);
+
+  --red:           #dc2626;
+  --red-dim:       rgba(220, 38, 38, 0.1);
+  --green:         #16a34a;
+  --green-dim:     rgba(22, 163, 74, 0.1);
+  --yellow:        #d97706;
+  --yellow-dim:    rgba(217, 119, 6, 0.1);
+  --orange:        #ea580c;
+  --purple:        #9333ea;
+  --purple-dim:    rgba(147, 51, 234, 0.1);
+
+  --text-primary:  #1f2937;
+  --text-secondary:#6b7280;
+  --text-muted:    #9ca3af;
+
+  --glass-bg:      rgba(255, 255, 255, 0.8);
+  --glass-border:  rgba(59, 130, 246, 0.2);
+  --glass-blur:    blur(10px);
+
+  --shadow:        0 4px 16px rgba(0, 0, 0, 0.08);
+  --shadow-glow:   0 0 20px rgba(59, 130, 246, 0.05);
+}
+
+body::before {
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 10%, rgba(59,130,246,0.03) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 80% 80%, rgba(147,51,234,0.02) 0%, transparent 60%);
+}
+
+a:hover { color: #1e40af; }
+
+#sidebar {
+  background: rgba(255, 255, 255, 0.95);
+  border-right-color: rgba(59, 130, 246, 0.15);
+}
+
+.topbar {
+  background: rgba(248, 249, 251, 0.95);
+}
+
+/* Ensure form inputs are visible on light background */
+.form-input {
+  background: #ffffff;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+/* Button hover effects for light theme */
+.btn-primary:hover {
+  background: #1e40af;
+  color: white;
+}
+
+/* Adjust alerts for light background */
+.alert {
+  background: var(--yellow-dim);
+}
+
+.alert-success { background: var(--green-dim); }
+.alert-danger { background: var(--red-dim); }
+.alert-warning { background: var(--yellow-dim); }
+.alert-info { background: var(--blue-dim); }

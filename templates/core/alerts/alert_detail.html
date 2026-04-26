@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% block title %}{% if request.user.language == 'ar' %}تنبيه: {{ alert.title }}{% elif request.user.language == 'fr' %}Alerte : {{ alert.title }}{% else %}Alert: {{ alert.title }}{% endif %}{% endblock %}
+{% block page_title %}
+{% with lang=request.user.language|default:'en' %}
+<i class="fa fa-bell"></i> {% if lang == 'ar' %}تفاصيل التنبيه{% elif lang == 'fr' %}Details de l'alerte{% else %}Alert Detail{% endif %}
+{% endwith %}
+{% endblock %}
+{% block content %}
+{% with lang=request.user.language|default:'en' %}
+<div class="detail-single glass">
+  <div class="alert-detail-header sev-bg-{{ alert.severity }}">
+    <div class="alert-sev-icon-lg sev-{{ alert.severity }}">
+      <i class="fa {% if alert.severity == 'critical' %}fa-skull-crossbones{% elif alert.severity == 'high' %}fa-triangle-exclamation{% elif alert.severity == 'medium' %}fa-exclamation-circle{% else %}fa-info-circle{% endif %}"></i>
+    </div>
+    <div>
+      <h2>{{ alert.title }}</h2>
+      <div class="alert-badges">
+        <span class="badge-sev sev-{{ alert.severity }}">{% if alert.severity == 'low' %}{% if lang == 'ar' %}منخفض{% elif lang == 'fr' %}FAIBLE{% else %}LOW{% endif %}{% elif alert.severity == 'medium' %}{% if lang == 'ar' %}متوسط{% elif lang == 'fr' %}MOYENNE{% else %}MEDIUM{% endif %}{% elif alert.severity == 'high' %}{% if lang == 'ar' %}عال{% elif lang == 'fr' %}ELEVEE{% else %}HIGH{% endif %}{% else %}{% if lang == 'ar' %}حرج{% elif lang == 'fr' %}CRITIQUE{% else %}CRITICAL{% endif %}{% endif %}</span>
+        <span class="badge badge-outline">{% if alert.alert_type == 'intrusion' %}{% if lang == 'ar' %}تم كشف التسلل{% elif lang == 'fr' %}Intrusion detectee{% else %}Intrusion Detected{% endif %}{% elif alert.alert_type == 'face' %}{% if lang == 'ar' %}تم التعرف على الوجه{% elif lang == 'fr' %}Visage reconnu{% else %}Face Recognized{% endif %}{% elif alert.alert_type == 'object' %}{% if lang == 'ar' %}تم كشف جسم{% elif lang == 'fr' %}Objet detecte{% else %}Object Detected{% endif %}{% elif alert.alert_type == 'motion' %}{% if lang == 'ar' %}تم كشف حركة{% elif lang == 'fr' %}Mouvement detecte{% else %}Motion Detected{% endif %}{% elif alert.alert_type == 'battery' %}{% if lang == 'ar' %}بطارية منخفضة{% elif lang == 'fr' %}Batterie faible{% else %}Low Battery{% endif %}{% elif alert.alert_type == 'connection' %}{% if lang == 'ar' %}انقطاع الاتصال{% elif lang == 'fr' %}Connexion perdue{% else %}Connection Lost{% endif %}{% elif alert.alert_type == 'geofence' %}{% if lang == 'ar' %}خرق النطاق الجغرافي{% elif lang == 'fr' %}Violation de geofence{% else %}Geofence Breach{% endif %}{% else %}{% if lang == 'ar' %}تنبيه نظام{% elif lang == 'fr' %}Alerte systeme{% else %}System Alert{% endif %}{% endif %}</span>
+        {% if alert.is_resolved %}<span class="badge badge-success">{% if lang == 'ar' %}محلول{% elif lang == 'fr' %}Resolu{% else %}Resolved{% endif %}</span>{% else %}<span class="badge badge-red">{% if lang == 'ar' %}نشط{% elif lang == 'fr' %}Actif{% else %}Active{% endif %}</span>{% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="detail-body">
+    <div class="detail-section">
+      <h4><i class="fa fa-info-circle"></i> {% if lang == 'ar' %}الوصف{% elif lang == 'fr' %}Description{% else %}Description{% endif %}</h4>
+      <p>{{ alert.description }}</p>
+    </div>
+    <div class="detail-meta-grid">
+      <div class="meta-item">
+        <label>{% if lang == 'ar' %}الطائرة{% elif lang == 'fr' %}Drone{% else %}Drone{% endif %}</label>
+        <span>{% if alert.drone %}<a href="{% url 'core:drone_detail' alert.drone.pk %}">{{ alert.drone.name }}</a>{% else %}{% if lang == 'ar' %}النظام{% elif lang == 'fr' %}Systeme{% else %}System{% endif %}{% endif %}</span>
+      </div>
+      <div class="meta-item">
+        <label>{% if lang == 'ar' %}تاريخ الانشاء{% elif lang == 'fr' %}Cree le{% else %}Created{% endif %}</label>
+        <span>{{ alert.created_at|date:"d M Y H:i:s" }}</span>
+      </div>
+      <div class="meta-item">
+        <label>{% if lang == 'ar' %}النوع{% elif lang == 'fr' %}Type{% else %}Type{% endif %}</label>
+        <span>{% if alert.alert_type == 'intrusion' %}{% if lang == 'ar' %}تم كشف التسلل{% elif lang == 'fr' %}Intrusion detectee{% else %}Intrusion Detected{% endif %}{% elif alert.alert_type == 'face' %}{% if lang == 'ar' %}تم التعرف على الوجه{% elif lang == 'fr' %}Visage reconnu{% else %}Face Recognized{% endif %}{% elif alert.alert_type == 'object' %}{% if lang == 'ar' %}تم كشف جسم{% elif lang == 'fr' %}Objet detecte{% else %}Object Detected{% endif %}{% elif alert.alert_type == 'motion' %}{% if lang == 'ar' %}تم كشف حركة{% elif lang == 'fr' %}Mouvement detecte{% else %}Motion Detected{% endif %}{% elif alert.alert_type == 'battery' %}{% if lang == 'ar' %}بطارية منخفضة{% elif lang == 'fr' %}Batterie faible{% else %}Low Battery{% endif %}{% elif alert.alert_type == 'connection' %}{% if lang == 'ar' %}انقطاع الاتصال{% elif lang == 'fr' %}Connexion perdue{% else %}Connection Lost{% endif %}{% elif alert.alert_type == 'geofence' %}{% if lang == 'ar' %}خرق النطاق الجغرافي{% elif lang == 'fr' %}Violation de geofence{% else %}Geofence Breach{% endif %}{% else %}{% if lang == 'ar' %}تنبيه نظام{% elif lang == 'fr' %}Alerte systeme{% else %}System Alert{% endif %}{% endif %}</span>
+      </div>
+      {% if alert.resolved_by %}
+      <div class="meta-item">
+        <label>{% if lang == 'ar' %}تم الحل بواسطة{% elif lang == 'fr' %}Resolu par{% else %}Resolved by{% endif %}</label>
+        <span>{{ alert.resolved_by.get_full_name }}</span>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="detail-actions">
+      <a href="{% url 'core:alert_list' %}" class="btn btn-outline">
+        <i class="fa fa-arrow-left"></i> {% if lang == 'ar' %}العودة الى التنبيهات{% elif lang == 'fr' %}Retour aux alertes{% else %}Back to Alerts{% endif %}
+      </a>
+      {% if not alert.is_resolved %}
+      <a href="{% url 'core:resolve_alert' alert.pk %}" class="btn btn-success">
+        <i class="fa fa-check"></i> {% if lang == 'ar' %}تحديد كمحلول{% elif lang == 'fr' %}Marquer comme resolue{% else %}Mark Resolved{% endif %}
+      </a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endwith %}
+{% endblock %}

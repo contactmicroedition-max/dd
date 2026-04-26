@@ -1,0 +1,224 @@
+{% extends 'base.html' %}
+{% block title %}{% if request.user.language == 'ar' %}بث مباشر{% elif request.user.language == 'fr' %}Flux en direct{% else %}Live Stream{% endif %}{% endblock %}
+{% block page_title %}
+{% with lang=request.user.language|default:'en' %}
+<i class="fa fa-video"></i> {% if lang == 'ar' %}المراقبة المباشرة{% elif lang == 'fr' %}Surveillance en direct{% else %}Live Monitoring{% endif %}
+{% endwith %}
+{% endblock %}
+{% block content %}
+{% with lang=request.user.language|default:'en' %}
+
+{% if user.is_admin %}
+<div class="stream-control-bar glass">
+  <div class="stream-control-status">
+    <span class="badge {% if livestream_state == 'active' %}badge-online{% elif livestream_state == 'suspended' %}badge-warn{% else %}badge-danger{% endif %}">
+      {% if livestream_state == 'active' %}
+        {% if lang == 'ar' %}البث فعال{% elif lang == 'fr' %}Flux actif{% else %}Live Stream Active{% endif %}
+      {% elif livestream_state == 'suspended' %}
+        {% if lang == 'ar' %}البث معلق مؤقتا{% elif lang == 'fr' %}Flux suspendu temporairement{% else %}Live Stream Suspended{% endif %}
+      {% else %}
+        {% if lang == 'ar' %}البث متوقف بالكامل{% elif lang == 'fr' %}Flux completement arrete{% else %}Live Stream Shut Down{% endif %}
+      {% endif %}
+    </span>
+    {% if livestream_admin_note %}
+      <span class="text-muted">{{ livestream_admin_note }}</span>
+    {% endif %}
+  </div>
+
+  <div class="stream-control-actions">
+    <form method="post" action="{% url 'core:live_stream_control' %}">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="resume" />
+      <button type="submit" class="btn btn-sm btn-success" {% if livestream_state == 'active' %}disabled{% endif %}>
+        <i class="fa fa-play"></i> {% if lang == 'ar' %}استئناف البث{% elif lang == 'fr' %}Reprendre le flux{% else %}Resume Stream{% endif %}
+      </button>
+    </form>
+    <form method="post" action="{% url 'core:live_stream_control' %}">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="suspend" />
+      <button type="submit" class="btn btn-sm btn-warning" {% if livestream_state == 'suspended' %}disabled{% endif %}>
+        <i class="fa fa-pause"></i> {% if lang == 'ar' %}تعليق مؤقت{% elif lang == 'fr' %}Suspendre temporairement{% else %}Temporarily Suspend{% endif %}
+      </button>
+    </form>
+    <form method="post" action="{% url 'core:live_stream_control' %}">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="shutdown" />
+      <button type="submit" class="btn btn-sm btn-danger" {% if livestream_state == 'shutdown' %}disabled{% endif %}>
+        <i class="fa fa-power-off"></i> {% if lang == 'ar' %}ايقاف كامل{% elif lang == 'fr' %}Arreter completement{% else %}Shut Down Stream{% endif %}
+      </button>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+{% if livestream_blocked_for_user %}
+<div class="empty-state glass">
+  <i class="fa fa-video-slash"></i>
+  <h3>{{ livestream_blocked_title }}</h3>
+  <p>{{ livestream_blocked_message }}</p>
+</div>
+{% else %}
+
+<div class="monitoring-layout">
+
+  <!-- Drone Selector -->
+  <div class="drone-selector glass">
+    <div class="widget-header"><span><i class="fa fa-helicopter"></i> {% if lang == 'ar' %}اختر طائرة{% elif lang == 'fr' %}Selectionner un drone{% else %}Select Drone{% endif %}</span></div>
+    {% for drone in drones %}
+    <a href="{% url 'core:live_stream_drone' drone.pk %}"
+       class="drone-select-item {% if selected and selected.pk == drone.pk %}active{% endif %} status-{{ drone.status }}">
+      <div class="drone-icon-sm"><i class="fa fa-helicopter"></i></div>
+      <div>
+        <div class="fw-600">{{ drone.name }}</div>
+        <span class="badge badge-{{ drone.status }}">{% if drone.status == 'online' %}{% if lang == 'ar' %}متصل{% elif lang == 'fr' %}En ligne{% else %}Online{% endif %}{% elif drone.status == 'offline' %}{% if lang == 'ar' %}غير متصل{% elif lang == 'fr' %}Hors ligne{% else %}Offline{% endif %}{% elif drone.status == 'charging' %}{% if lang == 'ar' %}يشحن{% elif lang == 'fr' %}En charge{% else %}Charging{% endif %}{% elif drone.status == 'maintenance' %}{% if lang == 'ar' %}صيانة{% elif lang == 'fr' %}Maintenance{% else %}Maintenance{% endif %}{% else %}{% if lang == 'ar' %}دورية{% elif lang == 'fr' %}Patrouille{% else %}Patrolling{% endif %}{% endif %}</span>
+      </div>
+      <div class="drone-bat-sm">
+        <i class="fa fa-battery-half battery-{{ drone.battery_color }}"></i> {{ drone.battery }}%
+      </div>
+    </a>
+    {% empty %}
+    <div class="empty-state-sm">{% if lang == 'ar' %}لا توجد طائرات نشطة{% elif lang == 'fr' %}Aucun drone actif{% else %}No active drones{% endif %}</div>
+    {% endfor %}
+  </div>
+
+  <!-- Main Stream -->
+  <div class="stream-main glass">
+    {% if selected %}
+    <div class="stream-topbar">
+      <div class="stream-info">
+        <span class="live-indicator"><span class="live-dot"></span> {% if lang == 'ar' %}مباشر{% elif lang == 'fr' %}DIRECT{% else %}LIVE{% endif %}</span>
+        <span class="fw-600">{{ selected.name }}</span>
+        <span class="text-muted">{{ selected.location_name }}</span>
+      </div>
+      <div class="stream-metrics" id="stream-metrics">
+        <span><i class="fa fa-signal"></i> <span id="sm-signal">--</span>%</span>
+        <span><i class="fa fa-film"></i> <span id="sm-fps">--</span> fps</span>
+        <span class="battery-{{ selected.battery_color }}"><i class="fa fa-battery-half"></i> <span id="sm-battery">{{ selected.battery }}</span>%</span>
+      </div>
+    </div>
+
+    <!-- Simulated video feed with bounding boxes -->
+    <div class="stream-viewport" id="stream-vp">
+      <div class="stream-scanline"></div>
+      <div class="stream-noise"></div>
+      <div class="stream-placeholder">
+        <i class="fa fa-satellite-dish"></i>
+        <p>{% if lang == 'ar' %}جاري الاتصال ببث {{ selected.name }}...{% elif lang == 'fr' %}Connexion au flux de {{ selected.name }}...{% else %}Connecting to {{ selected.name }} feed...{% endif %}</p>
+        <div class="stream-loading-bar"><div class="stream-loading-fill"><img src="with MySQL\he4a howa\virtual env\dronesec-main\media\chat_attachments\0c1f5339393afcd112464521ac086196.jpg"></div></div>
+      </div>
+      <!-- Bounding boxes (simulated) -->
+      <div class="bbox bbox-person" id="bbox1" style="display:none">
+        <span class="bbox-label"><i class="fa fa-person"></i> {% if lang == 'ar' %}شخص{% elif lang == 'fr' %}Personne{% else %}Person{% endif %} 97%</span>
+      </div>
+      <div class="bbox bbox-vehicle" id="bbox2" style="display:none">
+        <span class="bbox-label"><i class="fa fa-car"></i> {% if lang == 'ar' %}مركبة{% elif lang == 'fr' %}Vehicule{% else %}Vehicle{% endif %} 89%</span>
+      </div>
+
+      <!-- Stream overlays -->
+      <div class="stream-overlay-tl">
+        <div>LAT {{ selected.latitude|floatformat:4 }}</div>
+        <div>LNG {{ selected.longitude|floatformat:4 }}</div>
+        <div>ALT {{ selected.altitude|floatformat:0 }}m</div>
+      </div>
+      <div class="stream-overlay-tr">
+        <div id="stream-time">--:--:--</div>
+        <div>CAM-01</div>
+      </div>
+    </div>
+
+    <!-- Detections feed -->
+    <div class="detections-bar glass">
+      <div class="widget-header"><span><i class="fa fa-crosshairs"></i> {% if lang == 'ar' %}عمليات الكشف المباشرة{% elif lang == 'fr' %}Detections en direct{% else %}Live Detections{% endif %}</span></div>
+      <div id="detections-list">
+        <div class="detection-empty">{% if lang == 'ar' %}في انتظار عمليات الكشف...{% elif lang == 'fr' %}En attente de detections...{% else %}Waiting for detections...{% endif %}</div>
+      </div>
+    </div>
+
+    {% else %}
+    <div class="empty-state glass">
+      <i class="fa fa-video-slash"></i>
+      <h3>{% if lang == 'ar' %}لم يتم اختيار طائرة{% elif lang == 'fr' %}Aucun drone selectionne{% else %}No Drone Selected{% endif %}</h3>
+      <p>{% if lang == 'ar' %}اختر طائرة نشطة من اللوحة الجانبية.{% elif lang == 'fr' %}Selectionnez un drone actif depuis le panneau de gauche.{% else %}Select an active drone from the left panel.{% endif %}</p>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+
+{% endif %}
+
+{% endwith %}
+{% endblock %}
+
+{% block extra_js %}
+{% if selected %}
+<script>
+const droneId = {{ selected.pk }};
+const pageLang = '{{ request.user.language|default:"en" }}';
+let feedTimer;
+
+// Simulate stream connecting then showing feed
+setTimeout(() => {
+  const placeholder = document.querySelector('.stream-placeholder');
+  const vp = document.getElementById('stream-vp');
+  if (placeholder) {
+    placeholder.style.opacity = '0';
+    setTimeout(() => {
+      placeholder.style.display = 'none';
+      vp.classList.add('stream-active');
+    }, 600);
+  }
+}, 2000);
+
+// Poll feed API
+function pollFeed() {
+  fetch(`/monitoring/api/feed/${droneId}/`)
+    .then(r => r.json())
+    .then(d => {
+      document.getElementById('sm-signal').textContent = d.signal;
+      document.getElementById('sm-fps').textContent = d.fps;
+      document.getElementById('sm-battery').textContent = d.battery;
+
+      // Simulated bounding boxes
+      const bbox1 = document.getElementById('bbox1');
+      const bbox2 = document.getElementById('bbox2');
+      if (d.detections && d.detections.length > 0) {
+        d.detections.forEach((det, i) => {
+          const el = document.getElementById('bbox' + (i+1));
+          if (el) {
+            el.style.display = 'block';
+            el.style.left = det.x + '%';
+            el.style.top = det.y + '%';
+          }
+        });
+        updateDetectionsList(d.detections);
+      } else {
+        if (bbox1) bbox1.style.display = 'none';
+        if (bbox2) bbox2.style.display = 'none';
+      }
+    }).catch(() => {});
+}
+
+function updateDetectionsList(dets) {
+  const list = document.getElementById('detections-list');
+  list.innerHTML = dets.map(d => `
+    <div class="detection-item">
+      <i class="fa fa-${d.type === 'person' ? 'person' : 'car'}"></i>
+      <span>${d.type === 'person' ? (pageLang === 'ar' ? 'شخص' : (pageLang === 'fr' ? 'personne' : 'person')) : (pageLang === 'ar' ? 'مركبة' : (pageLang === 'fr' ? 'vehicule' : 'vehicle'))}</span>
+      <span class="conf-bar-wrap"><span class="conf-bar" style="width:${d.confidence}%"></span></span>
+      <span class="conf-val">${d.confidence}%</span>
+    </div>
+  `).join('');
+}
+
+// Live clock on stream
+function updateStreamTime() {
+  const el = document.getElementById('stream-time');
+  if (el) el.textContent = new Date().toLocaleTimeString();
+}
+setInterval(updateStreamTime, 1000);
+setInterval(pollFeed, 3000);
+pollFeed();
+</script>
+{% endif %}
+{% endblock %}

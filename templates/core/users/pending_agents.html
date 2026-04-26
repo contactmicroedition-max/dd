@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% block title %}{% if request.user.language == 'ar' %}الوكلاء المعلّقون{% elif request.user.language == 'fr' %}Agents en attente{% else %}Pending Agents{% endif %}{% endblock %}
+{% block page_title %}
+{% with lang=request.user.language|default:'en' %}
+<i class="fa fa-user-clock"></i> {% if lang == 'ar' %}موافقات الوكلاء المعلّقين{% elif lang == 'fr' %}Approbations des agents en attente{% else %}Pending Agent Approvals{% endif %}
+{% endwith %}
+{% endblock %}
+{% block content %}
+{% with lang=request.user.language|default:'en' %}
+<div class="page-section">
+  {% if pending_agents %}
+  <div class="table-card glass">
+    <div class="table-header">
+      <span>
+        {% if lang == 'ar' %}
+          {{ pending_agents.count }} وكيل بانتظار الموافقة
+        {% elif lang == 'fr' %}
+          {{ pending_agents.count }} agent{{ pending_agents.count|pluralize }} en attente d'approbation
+        {% else %}
+          {{ pending_agents.count }} agent{{ pending_agents.count|pluralize }} awaiting approval
+        {% endif %}
+      </span>
+    </div>
+    <table class="ds-table">
+      <thead>
+        <tr>
+          <th>{% if lang == 'ar' %}الوكيل{% elif lang == 'fr' %}Agent{% else %}Agent{% endif %}</th><th>{% if lang == 'ar' %}البريد{% elif lang == 'fr' %}E-mail{% else %}Email{% endif %}</th><th>{% if lang == 'ar' %}القسم{% elif lang == 'fr' %}Departement{% else %}Department{% endif %}</th><th>{% if lang == 'ar' %}تاريخ التسجيل{% elif lang == 'fr' %}Inscription{% else %}Registered{% endif %}</th><th>{% if lang == 'ar' %}الاجراءات{% elif lang == 'fr' %}Actions{% else %}Actions{% endif %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for agent in pending_agents %}
+        <tr>
+          <td>
+            <div class="cell-user">
+              <div class="user-avatar-placeholder sm">{{ agent.first_name|first }}{{ agent.last_name|first }}</div>
+              <div>
+                <div class="fw-600">{{ agent.get_full_name }}</div>
+                <div class="text-muted">@{{ agent.username }}</div>
+              </div>
+            </div>
+          </td>
+          <td>{{ agent.email }}</td>
+          <td>{{ agent.department|default:"—" }}</td>
+          <td class="text-muted">{{ agent.date_joined|date:"d M Y H:i" }}</td>
+          <td>
+            <div class="action-btns">
+              <a href="{% url 'core:approve_agent' agent.pk %}" class="btn btn-sm btn-success">
+                <i class="fa fa-check"></i> {% if lang == 'ar' %}موافقة{% elif lang == 'fr' %}Approuver{% else %}Approve{% endif %}
+              </a>
+              <a href="{% url 'core:reject_agent' agent.pk %}" class="btn btn-sm btn-danger"
+                 onclick="return confirm('Reject {{ agent.username }}?')">
+                <i class="fa fa-xmark"></i> {% if lang == 'ar' %}رفض{% elif lang == 'fr' %}Rejeter{% else %}Reject{% endif %}
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state glass">
+    <i class="fa fa-user-check"></i>
+    <h3>{% if lang == 'ar' %}لا يوجد وكلاء معلّقون{% elif lang == 'fr' %}Aucun agent en attente{% else %}No Pending Agents{% endif %}</h3>
+    <p>{% if lang == 'ar' %}تمت مراجعة جميع حسابات الوكلاء.{% elif lang == 'fr' %}Tous les comptes agents ont ete examines.{% else %}All agent accounts have been reviewed.{% endif %}</p>
+  </div>
+  {% endif %}
+</div>
+{% endwith %}
+{% endblock %}

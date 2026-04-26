@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+{% block title %}{% if request.user.language == 'ar' %}الطائرات{% elif request.user.language == 'fr' %}Drones{% else %}Drones{% endif %}{% endblock %}
+{% block page_title %}
+{% with lang=request.user.language|default:'en' %}
+<i class="fa fa-helicopter"></i> {% if lang == 'ar' %}اسطول الطائرات{% elif lang == 'fr' %}Flotte de drones{% else %}Drone Fleet{% endif %}
+{% endwith %}
+{% endblock %}
+{% block content %}
+{% with lang=request.user.language|default:'en' %}
+
+<div class="page-actions-bar">
+  {% if user.is_admin %}
+  <a href="{% url 'core:drone_add' %}" class="btn btn-primary">
+    <i class="fa fa-plus"></i> {% if lang == 'ar' %}اضافة طائرة{% elif lang == 'fr' %}Ajouter un drone{% else %}Add Drone{% endif %}
+  </a>
+  {% endif %}
+  <div class="fleet-summary">
+    <span class="badge badge-online">{% if lang == 'ar' %}{{ drones|length }} الاجمالي{% elif lang == 'fr' %}{{ drones|length }} total{% else %}{{ drones|length }} Total{% endif %}</span>
+  </div>
+</div>
+
+<div class="drone-grid">
+  {% for drone in drones %}
+  <div class="drone-card glass status-border-{{ drone.status }}">
+    <div class="drone-card-header">
+      <div class="drone-icon-wrap status-{{ drone.status }}">
+        <i class="fa fa-helicopter"></i>
+        {% if drone.status == 'patrolling' or drone.status == 'online' %}
+        <span class="pulse-ring"></span>
+        {% endif %}
+      </div>
+      <div>
+        <h3 class="drone-name">{{ drone.name }}</h3>
+        <div class="drone-serial text-muted">{{ drone.serial_number }}</div>
+      </div>
+      <span class="badge badge-{{ drone.status }} ml-auto">{% if drone.status == 'online' %}{% if lang == 'ar' %}متصل{% elif lang == 'fr' %}En ligne{% else %}Online{% endif %}{% elif drone.status == 'offline' %}{% if lang == 'ar' %}غير متصل{% elif lang == 'fr' %}Hors ligne{% else %}Offline{% endif %}{% elif drone.status == 'charging' %}{% if lang == 'ar' %}يشحن{% elif lang == 'fr' %}En charge{% else %}Charging{% endif %}{% elif drone.status == 'maintenance' %}{% if lang == 'ar' %}صيانة{% elif lang == 'fr' %}Maintenance{% else %}Maintenance{% endif %}{% else %}{% if lang == 'ar' %}دورية{% elif lang == 'fr' %}Patrouille{% else %}Patrolling{% endif %}{% endif %}</span>
+    </div>
+
+    <div class="drone-metrics">
+      <div class="metric">
+        <i class="fa fa-battery-three-quarters battery-{{ drone.battery_color }}"></i>
+        <span class="metric-val">{{ drone.battery }}%</span>
+        <span class="metric-lbl">{% if lang == 'ar' %}البطارية{% elif lang == 'fr' %}Batterie{% else %}Battery{% endif %}</span>
+      </div>
+      <div class="metric">
+        <i class="fa fa-location-dot"></i>
+        <span class="metric-val">{{ drone.altitude|floatformat:0 }}m</span>
+        <span class="metric-lbl">{% if lang == 'ar' %}الارتفاع{% elif lang == 'fr' %}Altitude{% else %}Altitude{% endif %}</span>
+      </div>
+      <div class="metric">
+        <i class="fa fa-gauge"></i>
+        <span class="metric-val">{{ drone.speed|floatformat:0 }}</span>
+        <span class="metric-lbl">km/h</span>
+      </div>
+      <div class="metric">
+        <i class="fa fa-video {% if drone.camera_active %}text-blue{% else %}text-gray{% endif %}"></i>
+        <span class="metric-val">{% if drone.camera_active %}{% if lang == 'ar' %}تشغيل{% elif lang == 'fr' %}ON{% else %}ON{% endif %}{% else %}{% if lang == 'ar' %}ايقاف{% elif lang == 'fr' %}OFF{% else %}OFF{% endif %}{% endif %}</span>
+        <span class="metric-lbl">{% if lang == 'ar' %}الكاميرا{% elif lang == 'fr' %}Camera{% else %}Camera{% endif %}</span>
+      </div>
+    </div>
+
+    <div class="battery-bar-full">
+      <div class="battery-fill battery-{{ drone.battery_color }}" style="width:{{ drone.battery }}%"></div>
+    </div>
+
+    <div class="drone-location text-muted">
+      <i class="fa fa-map-pin"></i> {% if drone.location_name %}{{ drone.location_name }}{% else %}{% if lang == 'ar' %}موقع غير معروف{% elif lang == 'fr' %}Emplacement inconnu{% else %}Unknown location{% endif %}{% endif %}
+    </div>
+
+    <div class="drone-card-actions">
+      <a href="{% url 'core:drone_detail' drone.pk %}" class="btn btn-sm btn-outline drone-action-main">
+        <i class="fa fa-eye"></i> {% if lang == 'ar' %}التفاصيل{% elif lang == 'fr' %}Details{% else %}Details{% endif %}
+      </a>
+      {% if drone.status == 'online' or drone.status == 'patrolling' %}
+      <a href="{% url 'core:live_stream_drone' drone.pk %}" class="btn btn-sm btn-blue drone-action-main">
+        <i class="fa fa-video"></i> {% if lang == 'ar' %}بث مباشر{% elif lang == 'fr' %}Flux en direct{% else %}Live Feed{% endif %}
+      </a>
+      {% else %}
+      <button type="button" class="btn btn-sm btn-blue btn-disabled drone-action-main" disabled aria-disabled="true" title="{% if lang == 'ar' %}غير متاح عند التوقف او الشحن او الصيانة{% elif lang == 'fr' %}Indisponible hors ligne, en charge ou en maintenance{% else %}Unavailable while offline, charging, or in maintenance{% endif %}">
+        <i class="fa fa-video"></i> {% if lang == 'ar' %}بث مباشر{% elif lang == 'fr' %}Flux en direct{% else %}Live Feed{% endif %}
+      </button>
+      {% endif %}
+      {% if user.is_admin %}
+      <div class="drone-admin-inline-actions">
+        {% if drone.status == 'offline' or drone.status == 'online' or drone.status == 'patrolling' %}
+        <form method="post" action="{% url 'core:drone_control' drone.pk %}" class="drone-control-form">
+          {% csrf_token %}
+          {% if drone.status == 'offline' %}
+          <input type="hidden" name="action" value="resume" />
+          <button type="submit" class="btn btn-sm btn-blue drone-action-icon" title="{% if lang == 'ar' %}السماح بالتشغيل{% elif lang == 'fr' %}Autoriser le fonctionnement{% else %}Allow Operation{% endif %}">
+            <i class="fa fa-play"></i>
+          </button>
+          {% else %}
+          <input type="hidden" name="action" value="stop" />
+          <button type="button" class="btn btn-sm btn-danger drone-action-icon js-drone-stop-trigger" data-drone-name="{{ drone.name|escapejs }}" title="{% if lang == 'ar' %}ايقاف الطائرة{% elif lang == 'fr' %}Arreter le drone{% else %}Stop Drone{% endif %}">
+            <i class="fa fa-stop"></i>
+          </button>
+          {% endif %}
+        </form>
+        {% endif %}
+        <a href="{% url 'core:drone_edit' drone.pk %}" class="btn btn-sm btn-outline drone-action-icon">
+          <i class="fa fa-pen"></i>
+        </a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% empty %}
+  <div class="empty-state glass" style="grid-column:1/-1">
+    <i class="fa fa-helicopter"></i>
+    <h3>{% if lang == 'ar' %}لا توجد طائرات مهيأة{% elif lang == 'fr' %}Aucun drone configure{% else %}No Drones Configured{% endif %}</h3>
+    <p>{% if lang == 'ar' %}اضف اول طائرة للبدء.{% elif lang == 'fr' %}Ajoutez votre premier drone pour commencer.{% else %}Add your first drone to get started.{% endif %}</p>
+    {% if user.is_admin %}
+    <a href="{% url 'core:drone_add' %}" class="btn btn-primary">{% if lang == 'ar' %}اضافة طائرة{% elif lang == 'fr' %}Ajouter un drone{% else %}Add Drone{% endif %}</a>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+
+{% include 'core/drones/partials/stop_confirm_modal.html' %}
+{% endwith %}
+{% endblock %}

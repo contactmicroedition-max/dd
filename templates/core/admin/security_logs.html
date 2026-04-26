@@ -1,0 +1,399 @@
+{% extends 'base.html' %}
+{% block title %}{% if request.user.language == 'ar' %}سجلات النظام{% elif request.user.language == 'fr' %}Journaux systeme{% else %}System Security Logs{% endif %}{% endblock %}
+{% block page_title %}
+{% with lang=request.user.language|default:'en' %}
+<i class="fa fa-shield"></i> {% if lang == 'ar' %}سجلات النظام الامني{% elif lang == 'fr' %}Journaux systeme de securite{% else %}Security System Logs{% endif %}
+{% endwith %}
+{% endblock %}
+{% block content %}
+{% with lang=request.user.language|default:'en' %}
+
+<style>
+  #logs-delete-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 3000;
+    display: grid;
+    place-items: center;
+    padding: 16px;
+  }
+
+  #logs-delete-modal[hidden] {
+    display: none;
+  }
+
+  .logs-delete-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(5, 10, 24, 0.72);
+  }
+
+  .logs-delete-card {
+    position: relative;
+    width: min(460px, calc(100vw - 32px));
+    padding: 18px;
+    border-radius: 16px;
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    background: rgba(8, 18, 36, 0.98);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+  }
+
+  .logs-delete-title {
+    margin: 0 0 8px;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #f8fafc;
+  }
+
+  .logs-delete-desc {
+    margin: 0 0 12px;
+    color: #cbd5e1;
+  }
+
+  .logs-delete-options-list {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .logs-delete-option-btn {
+    width: 100%;
+    text-align: left;
+    justify-content: flex-start;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    background: rgba(15, 31, 58, 0.98);
+    color: #e2e8f0;
+  }
+
+  .logs-delete-option-btn i {
+    color: inherit;
+  }
+
+  .logs-delete-option-btn.active {
+    border-color: rgba(56, 189, 248, 0.85);
+    box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.35) inset;
+    color: #f8fafc;
+  }
+
+  .logs-delete-option-btn.danger.active {
+    border-color: rgba(248, 113, 113, 0.92);
+    box-shadow: 0 0 0 1px rgba(248, 113, 113, 0.4) inset;
+    color: #fecaca;
+  }
+
+  .logs-delete-selected-note {
+    margin: 0 0 12px;
+    font-size: 0.9rem;
+    color: #94a3b8;
+  }
+
+  .logs-delete-selected-note.error {
+    color: #fda4af;
+  }
+
+  .logs-delete-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  #logs-delete-confirm:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  #logs-delete-cancel {
+    color: #e2e8f0;
+  }
+
+  #logs-delete-confirm {
+    color: #fecaca;
+  }
+</style>
+
+<div class="filter-bar glass">
+  <form method="get" class="filter-form">
+    <input type="text" name="q" value="{{ request.GET.q|default:'' }}" class="form-input form-input-sm" placeholder="{% if lang == 'ar' %}ابحث بالرسالة او المصدر{% elif lang == 'fr' %}Rechercher message/source{% else %}Search message/source{% endif %}" />
+
+    <select name="event" class="form-input form-input-sm" onchange="this.form.submit()">
+      <option value="">{% if lang == 'ar' %}كل الاحداث{% elif lang == 'fr' %}Tous les evenements{% else %}All Events{% endif %}</option>
+      {% for val, label in event_choices %}
+      <option value="{{ val }}" {% if request.GET.event == val %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+
+    <select name="severity" class="form-input form-input-sm" onchange="this.form.submit()">
+      <option value="">{% if lang == 'ar' %}كل المستويات{% elif lang == 'fr' %}Tous les niveaux{% else %}All Levels{% endif %}</option>
+      {% for val, label in severity_choices %}
+      <option value="{{ val }}" {% if request.GET.severity == val %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+
+    <select name="since" class="form-input form-input-sm" onchange="this.form.submit()">
+      <option value="">{% if lang == 'ar' %}كل الفترات{% elif lang == 'fr' %}Toutes les periodes{% else %}All Time{% endif %}</option>
+      <option value="24h" {% if request.GET.since == '24h' %}selected{% endif %}>{% if lang == 'ar' %}آخر 24 ساعة{% elif lang == 'fr' %}Dernieres 24h{% else %}Last 24h{% endif %}</option>
+      <option value="7d" {% if request.GET.since == '7d' %}selected{% endif %}>{% if lang == 'ar' %}آخر 7 ايام{% elif lang == 'fr' %}Derniers 7 jours{% else %}Last 7 days{% endif %}</option>
+      <option value="30d" {% if request.GET.since == '30d' %}selected{% endif %}>{% if lang == 'ar' %}آخر 30 يوم{% elif lang == 'fr' %}Derniers 30 jours{% else %}Last 30 days{% endif %}</option>
+    </select>
+
+    <button type="submit" class="btn btn-sm btn-outline"><i class="fa fa-filter"></i> {% if lang == 'ar' %}تصفية{% elif lang == 'fr' %}Filtrer{% else %}Filter{% endif %}</button>
+    <a href="{% url 'core:security_system_logs' %}" class="btn btn-sm btn-outline"><i class="fa fa-rotate-left"></i> {% if lang == 'ar' %}اعادة ضبط{% elif lang == 'fr' %}Reinitialiser{% else %}Reset{% endif %}</a>
+  </form>
+</div>
+
+<div class="alerts-list" style="margin-bottom: 16px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px;">
+  <div class="glass" style="padding: 12px 14px;">
+    <div class="text-muted">{% if lang == 'ar' %}اجمالي السجلات{% elif lang == 'fr' %}Total journaux{% else %}Total Logs{% endif %}</div>
+    <div style="font-size: 20px; font-weight: 700;">{{ total_logs }}</div>
+  </div>
+  <div class="glass" style="padding: 12px 14px;">
+    <div class="text-muted">{% if lang == 'ar' %}حرج{% elif lang == 'fr' %}Critique{% else %}Critical{% endif %}</div>
+    <div style="font-size: 20px; font-weight: 700; color: var(--red);">{{ critical_count }}</div>
+  </div>
+  <div class="glass" style="padding: 12px 14px;">
+    <div class="text-muted">{% if lang == 'ar' %}تحذير{% elif lang == 'fr' %}Alerte{% else %}Warning{% endif %}</div>
+    <div style="font-size: 20px; font-weight: 700; color: var(--yellow);">{{ warning_count }}</div>
+  </div>
+  <div class="glass" style="padding: 12px 14px;">
+    <div class="text-muted">{% if lang == 'ar' %}معلومات{% elif lang == 'fr' %}Info{% else %}Info{% endif %}</div>
+    <div style="font-size: 20px; font-weight: 700; color: var(--blue);">{{ info_count }}</div>
+  </div>
+</div>
+
+<div class="table-card glass">
+  <div class="table-header" style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+    <span><i class="fa fa-clipboard-list"></i> {% if lang == 'ar' %}احدث الاحداث{% elif lang == 'fr' %}Derniers evenements{% else %}Recent Events{% endif %}</span>
+    <button type="button" class="btn btn-sm btn-red" id="logs-delete-toggle">
+      <i class="fa fa-trash"></i> {% if lang == 'ar' %}حذف{% elif lang == 'fr' %}Supprimer{% else %}Delete{% endif %}
+    </button>
+    <form method="post" action="{% url 'core:security_system_logs_delete' %}" id="log-delete-form" style="display:none;">
+      {% csrf_token %}
+      <input type="hidden" id="delete-scope-input" name="delete_scope" value="" />
+    </form>
+  </div>
+  <div style="overflow-x: auto;">
+    <table class="ds-table">
+      <thead>
+        <tr>
+          <th style="width:42px;"><input type="checkbox" id="select-all-logs" /></th>
+          <th>{% if lang == 'ar' %}الوقت{% elif lang == 'fr' %}Heure{% else %}Time{% endif %}</th>
+          <th>{% if lang == 'ar' %}الحدث{% elif lang == 'fr' %}Evenement{% else %}Event{% endif %}</th>
+          <th>{% if lang == 'ar' %}المستوى{% elif lang == 'fr' %}Niveau{% else %}Level{% endif %}</th>
+          <th>{% if lang == 'ar' %}الرسالة{% elif lang == 'fr' %}Message{% else %}Message{% endif %}</th>
+          <th>{% if lang == 'ar' %}المصدر{% elif lang == 'fr' %}Source{% else %}Source{% endif %}</th>
+          <th>{% if lang == 'ar' %}المستخدم{% elif lang == 'fr' %}Utilisateur{% else %}User{% endif %}</th>
+          <th>{% if lang == 'ar' %}الطائرة/التنبيه{% elif lang == 'fr' %}Drone/Alerte{% else %}Drone/Alert{% endif %}</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for item in logs %}
+        <tr>
+          <td><input type="checkbox" name="log_ids" value="{{ item.id }}" form="log-delete-form" class="log-checkbox" /></td>
+          <td>{{ item.created_at|date:'Y-m-d H:i:s' }}</td>
+          <td><span class="badge badge-outline">{{ item.get_event_type_display }}</span></td>
+          <td>
+            <span class="badge {% if item.severity == 'critical' %}badge-red{% elif item.severity == 'warning' %}badge-warn{% else %}badge-online{% endif %}">
+              {{ item.get_severity_display }}
+            </span>
+          </td>
+          <td>{{ item.message }}</td>
+          <td>{{ item.source }}</td>
+          <td>{% if item.user %}{{ item.user.username }}{% else %}-{% endif %}</td>
+          <td>
+            {% if item.drone %}<div><i class="fa fa-helicopter"></i> {{ item.drone.name }}</div>{% endif %}
+            {% if item.alert %}<div><i class="fa fa-bell"></i> #{{ item.alert.id }}</div>{% endif %}
+            {% if not item.drone and not item.alert %}-{% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="8" style="text-align:center; color: var(--text-muted);">
+            {% if lang == 'ar' %}لا توجد سجلات مطابقة حاليا.{% elif lang == 'fr' %}Aucun journal ne correspond aux filtres actuels.{% else %}No log records match your current filters.{% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div id="logs-delete-modal" hidden>
+  <div class="logs-delete-backdrop" id="logs-delete-backdrop"></div>
+  <div class="logs-delete-card glass" role="dialog" aria-modal="true" aria-labelledby="logs-delete-title">
+    <h3 class="logs-delete-title" id="logs-delete-title">
+      {% if lang == 'ar' %}خيارات حذف السجلات{% elif lang == 'fr' %}Options de suppression des journaux{% else %}Delete Log Options{% endif %}
+    </h3>
+    <p class="logs-delete-desc">
+      {% if lang == 'ar' %}اختر نوع الحذف ثم أكد العملية.{% elif lang == 'fr' %}Choisissez le type de suppression puis confirmez l'operation.{% else %}Choose a delete scope, then confirm the action.{% endif %}
+    </p>
+    <div class="logs-delete-options-list">
+      <button type="button" class="btn btn-sm logs-delete-option-btn" data-scope="selected">
+        <i class="fa fa-check-square"></i> {% if lang == 'ar' %}حذف المحدد{% elif lang == 'fr' %}Supprimer selection{% else %}Delete Selected{% endif %}
+      </button>
+      <button type="button" class="btn btn-sm logs-delete-option-btn" data-scope="24h">
+        {% if lang == 'ar' %}حذف آخر 24 ساعة{% elif lang == 'fr' %}Supprimer dernieres 24h{% else %}Delete Last 24h{% endif %}
+      </button>
+      <button type="button" class="btn btn-sm logs-delete-option-btn" data-scope="7d">
+        {% if lang == 'ar' %}حذف آخر 7 ايام{% elif lang == 'fr' %}Supprimer derniers 7 jours{% else %}Delete Last 7 Days{% endif %}
+      </button>
+      <button type="button" class="btn btn-sm logs-delete-option-btn" data-scope="30d">
+        {% if lang == 'ar' %}حذف آخر 30 يوما{% elif lang == 'fr' %}Supprimer derniers 30 jours{% else %}Delete Last 30 Days{% endif %}
+      </button>
+      <button type="button" class="btn btn-sm btn-red logs-delete-option-btn danger" data-scope="all">
+        <i class="fa fa-bomb"></i> {% if lang == 'ar' %}حذف الكل{% elif lang == 'fr' %}Supprimer tout{% else %}Delete All Logs{% endif %}
+      </button>
+    </div>
+    <p class="logs-delete-selected-note" id="logs-delete-note"></p>
+    <div class="logs-delete-actions">
+      <button type="button" class="btn btn-sm btn-outline" id="logs-delete-cancel">
+        {% if lang == 'ar' %}إلغاء{% elif lang == 'fr' %}Annuler{% else %}Cancel{% endif %}
+      </button>
+      <button type="button" class="btn btn-sm btn-red" id="logs-delete-confirm" disabled>
+        <i class="fa fa-trash"></i> {% if lang == 'ar' %}تأكيد الحذف{% elif lang == 'fr' %}Confirmer la suppression{% else %}Confirm Delete{% endif %}
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function () {
+    const selectAll = document.getElementById('select-all-logs');
+    const checkboxes = Array.from(document.querySelectorAll('.log-checkbox'));
+    if (!selectAll) return;
+
+    const deleteToggle = document.getElementById('logs-delete-toggle');
+    const deleteModal = document.getElementById('logs-delete-modal');
+    const deleteBackdrop = document.getElementById('logs-delete-backdrop');
+    const deleteCancel = document.getElementById('logs-delete-cancel');
+    const deleteConfirm = document.getElementById('logs-delete-confirm');
+    const deleteNote = document.getElementById('logs-delete-note');
+    const deleteChoiceButtons = Array.from(document.querySelectorAll('.logs-delete-option-btn'));
+    const deleteScopeInput = document.getElementById('delete-scope-input');
+    const deleteForm = document.getElementById('log-delete-form');
+    let selectedScope = '';
+
+    const scopeLabels = {
+      selected: "{% if lang == 'ar' %}حذف المحدد{% elif lang == 'fr' %}Supprimer selection{% else %}Delete Selected{% endif %}",
+      "24h": "{% if lang == 'ar' %}حذف آخر 24 ساعة{% elif lang == 'fr' %}Supprimer dernieres 24h{% else %}Delete Last 24h{% endif %}",
+      "7d": "{% if lang == 'ar' %}حذف آخر 7 ايام{% elif lang == 'fr' %}Supprimer derniers 7 jours{% else %}Delete Last 7 Days{% endif %}",
+      "30d": "{% if lang == 'ar' %}حذف آخر 30 يوما{% elif lang == 'fr' %}Supprimer derniers 30 jours{% else %}Delete Last 30 Days{% endif %}",
+      all: "{% if lang == 'ar' %}حذف الكل{% elif lang == 'fr' %}Supprimer tout{% else %}Delete All Logs{% endif %}"
+    };
+
+    const messages = {
+      chooseOne: "{% if lang == 'ar' %}اختر سجلا واحدا على الاقل للحذف.{% elif lang == 'fr' %}Selectionnez au moins un journal a supprimer.{% else %}Select at least one log to delete.{% endif %}",
+      chooseScope: "{% if lang == 'ar' %}اختر نوع الحذف اولا.{% elif lang == 'fr' %}Choisissez d'abord un type de suppression.{% else %}Choose a delete scope first.{% endif %}",
+      selectedHint: "{% if lang == 'ar' %}السجلات المحددة:{% elif lang == 'fr' %}Journaux selectionnes:{% else %}Selected logs:{% endif %}",
+      activeScope: "{% if lang == 'ar' %}الاختيار الحالي:{% elif lang == 'fr' %}Choix actuel:{% else %}Current choice:{% endif %}",
+      selected: "{% if lang == 'ar' %}هل تريد حذف السجلات المحددة؟{% elif lang == 'fr' %}Confirmer la suppression des journaux selectionnes ?{% else %}Delete selected logs?{% endif %}",
+      "24h": "{% if lang == 'ar' %}هل تريد حذف سجلات آخر 24 ساعة؟{% elif lang == 'fr' %}Supprimer les journaux des dernieres 24h ?{% else %}Delete logs from the last 24 hours?{% endif %}",
+      "7d": "{% if lang == 'ar' %}هل تريد حذف سجلات آخر 7 أيام؟{% elif lang == 'fr' %}Supprimer les journaux des 7 derniers jours ?{% else %}Delete logs from the last 7 days?{% endif %}",
+      "30d": "{% if lang == 'ar' %}هل تريد حذف سجلات آخر 30 يوما؟{% elif lang == 'fr' %}Supprimer les journaux des 30 derniers jours ?{% else %}Delete logs from the last 30 days?{% endif %}",
+      all: "{% if lang == 'ar' %}تحذير: سيتم حذف جميع السجلات. هل تريد المتابعة؟{% elif lang == 'fr' %}Attention: tous les journaux seront supprimes. Continuer ?{% else %}Warning: this will delete all logs. Continue?{% endif %}",
+      fallback: "{% if lang == 'ar' %}هل أنت متأكد من متابعة الحذف؟{% elif lang == 'fr' %}Confirmer la suppression ?{% else %}Confirm delete action?{% endif %}"
+    };
+
+    selectAll.addEventListener('change', function () {
+      checkboxes.forEach(function (cb) {
+        cb.checked = selectAll.checked;
+      });
+    });
+
+    function getSelectedCount() {
+      return checkboxes.filter(function (item) { return item.checked; }).length;
+    }
+
+    function updateDeleteNote() {
+      if (!deleteNote) return;
+      const selectedCount = getSelectedCount();
+      const selectedLabel = scopeLabels[selectedScope] || '-';
+      deleteNote.classList.remove('error');
+      deleteNote.textContent = messages.activeScope + ' ' + selectedLabel + ' | ' + messages.selectedHint + ' ' + selectedCount;
+    }
+
+    function setDeleteNoteError(messageText) {
+      if (!deleteNote) return;
+      deleteNote.classList.add('error');
+      deleteNote.textContent = messageText;
+    }
+
+    function syncDeleteConfirmState() {
+      if (!deleteConfirm) return;
+      const selectedCount = getSelectedCount();
+      const canDelete = selectedScope && (selectedScope !== 'selected' || selectedCount > 0);
+      deleteConfirm.disabled = !canDelete;
+      updateDeleteNote();
+    }
+
+    function closeDeleteModal() {
+      if (!deleteModal) return;
+      deleteModal.hidden = true;
+    }
+
+    function openDeleteModal() {
+      if (!deleteModal) return;
+      deleteModal.hidden = false;
+      syncDeleteConfirmState();
+    }
+
+    checkboxes.forEach(function (cb) {
+      cb.addEventListener('change', function () {
+        const selectedCount = getSelectedCount();
+        selectAll.checked = selectedCount > 0 && selectedCount === checkboxes.length;
+        selectAll.indeterminate = selectedCount > 0 && selectedCount < checkboxes.length;
+        syncDeleteConfirmState();
+      });
+    });
+
+    syncDeleteConfirmState();
+
+    if (deleteToggle && deleteModal && deleteScopeInput && deleteForm) {
+      deleteToggle.addEventListener('click', openDeleteModal);
+
+      if (deleteBackdrop) {
+        deleteBackdrop.addEventListener('click', closeDeleteModal);
+      }
+
+      if (deleteCancel) {
+        deleteCancel.addEventListener('click', closeDeleteModal);
+      }
+
+      document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && !deleteModal.hidden) {
+          closeDeleteModal();
+        }
+      });
+
+      deleteChoiceButtons.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          selectedScope = btn.getAttribute('data-scope') || '';
+          deleteChoiceButtons.forEach(function (item) {
+            item.classList.toggle('active', item === btn);
+          });
+          syncDeleteConfirmState();
+        });
+      });
+
+      if (deleteConfirm) {
+        deleteConfirm.addEventListener('click', function () {
+          if (!selectedScope) {
+            setDeleteNoteError(messages.chooseScope);
+            return;
+          }
+
+          if (selectedScope === 'selected' && getSelectedCount() < 1) {
+            setDeleteNoteError(messages.chooseOne);
+            return;
+          }
+
+          deleteScopeInput.value = selectedScope;
+          deleteForm.submit();
+        });
+      }
+    }
+  })();
+</script>
+
+{% endwith %}
+{% endblock %}

@@ -1,0 +1,302 @@
+{% extends 'base.html' %}
+{% block title %}{% if request.user.language == 'ar' %}التنبيهات{% elif request.user.language == 'fr' %}Alertes{% else %}Alerts{% endif %}{% endblock %}
+{% block page_title %}
+{% with lang=request.user.language|default:'en' %}
+<i class="fa fa-bell"></i> {% if lang == 'ar' %}تنبيهات الامن{% elif lang == 'fr' %}Alertes de securite{% else %}Security Alerts{% endif %}
+{% endwith %}
+{% endblock %}
+{% block content %}
+{% with lang=request.user.language|default:'en' %}
+
+{% if request.user.is_admin %}
+<style>
+  #alert-delete-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 3200;
+    display: grid;
+    place-items: center;
+    padding: 16px;
+  }
+
+  #alert-delete-modal[hidden] {
+    display: none;
+  }
+
+  .alert-delete-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(2, 6, 20, 0.72);
+  }
+
+  .alert-delete-card {
+    position: relative;
+    width: min(430px, calc(100vw - 32px));
+    border-radius: 16px;
+    padding: 18px;
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+    background: rgba(8, 18, 36, 0.98);
+    animation: alert-delete-pop 0.16s ease-out;
+  }
+
+  @keyframes alert-delete-pop {
+    from {
+      opacity: 0;
+      transform: scale(0.94);
+    }
+
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .alert-delete-title {
+    margin: 0 0 8px;
+    color: #f8fafc;
+    font-size: 1.05rem;
+    font-weight: 700;
+  }
+
+  .alert-delete-text {
+    margin: 0 0 14px;
+    color: #cbd5e1;
+    line-height: 1.5;
+  }
+
+  .alert-delete-target {
+    color: #fecaca;
+    font-weight: 700;
+  }
+
+  .alert-delete-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .alert-delete-trigger {
+    color: #fecaca;
+  }
+</style>
+{% endif %}
+
+<!-- Filter Bar -->
+<div class="filter-bar glass">
+  <form method="get" class="filter-form">
+    <select name="severity" class="form-input form-input-sm" onchange="this.form.submit()">
+      <option value="">{% if lang == 'ar' %}كل مستويات الخطورة{% elif lang == 'fr' %}Toutes les severites{% else %}All Severities{% endif %}</option>
+      {% for val, label in severity_choices %}
+      <option value="{{ val }}" {% if request.GET.severity == val %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <select name="type" class="form-input form-input-sm" onchange="this.form.submit()">
+      <option value="">{% if lang == 'ar' %}كل الانواع{% elif lang == 'fr' %}Tous les types{% else %}All Types{% endif %}</option>
+      {% for val, label in type_choices %}
+      <option value="{{ val }}" {% if request.GET.type == val %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <select name="resolved" class="form-input form-input-sm" onchange="this.form.submit()">
+      <option value="">{% if lang == 'ar' %}كل الحالات{% elif lang == 'fr' %}Tous les statuts{% else %}All Status{% endif %}</option>
+      <option value="0" {% if request.GET.resolved == '0' %}selected{% endif %}>{% if lang == 'ar' %}غير محلول{% elif lang == 'fr' %}Non resolu{% else %}Unresolved{% endif %}</option>
+      <option value="1" {% if request.GET.resolved == '1' %}selected{% endif %}>{% if lang == 'ar' %}محلول{% elif lang == 'fr' %}Resolu{% else %}Resolved{% endif %}</option>
+    </select>
+    <button type="button" onclick="simulateAlert()" class="btn btn-sm btn-red">
+      <i class="fa fa-bolt"></i> {% if lang == 'ar' %}محاكاة تنبيه{% elif lang == 'fr' %}Simuler une alerte{% else %}Simulate Alert{% endif %}
+    </button>
+    {% if request.user.is_admin %}
+    <button
+      type="button"
+      class="btn btn-sm btn-red"
+      id="alert-delete-all-trigger"
+      data-delete-url="{% url 'core:alert_delete_all' %}"
+      data-alert-title="{% if lang == 'ar' %}كل التنبيهات{% elif lang == 'fr' %}Toutes les alertes{% else %}All Alerts{% endif %}"
+      data-delete-mode="all"
+    >
+      <i class="fa fa-bomb"></i> {% if lang == 'ar' %}حذف الكل{% elif lang == 'fr' %}Supprimer tout{% else %}Delete All{% endif %}
+    </button>
+    {% endif %}
+  </form>
+</div>
+
+<!-- Alert List -->
+<div class="alerts-list">
+  {% for alert in alerts %}
+  <div class="alert-card glass severity-border-{{ alert.severity }} {% if not alert.is_read %}unread{% endif %} {% if alert.is_resolved %}resolved{% endif %}">
+    <div class="alert-card-left">
+      <div class="alert-sev-icon sev-{{ alert.severity }}">
+        <i class="fa {% if alert.severity == 'critical' %}fa-skull-crossbones{% elif alert.severity == 'high' %}fa-triangle-exclamation{% elif alert.severity == 'medium' %}fa-exclamation-circle{% else %}fa-info-circle{% endif %}"></i>
+      </div>
+    </div>
+    <div class="alert-card-body">
+      <div class="alert-card-title">
+        {{ alert.title }}
+        {% if not alert.is_read %}<span class="unread-badge">NEW</span>{% endif %}
+        {% if alert.is_resolved %}<span class="resolved-badge"><i class="fa fa-check"></i> {% if lang == 'ar' %}محلول{% elif lang == 'fr' %}Resolu{% else %}Resolved{% endif %}</span>{% endif %}
+      </div>
+      <div class="alert-card-meta">
+        <span class="badge-sev sev-{{ alert.severity }}">{% if alert.severity == 'low' %}{% if lang == 'ar' %}منخفض{% elif lang == 'fr' %}FAIBLE{% else %}LOW{% endif %}{% elif alert.severity == 'medium' %}{% if lang == 'ar' %}متوسط{% elif lang == 'fr' %}MOYENNE{% else %}MEDIUM{% endif %}{% elif alert.severity == 'high' %}{% if lang == 'ar' %}عال{% elif lang == 'fr' %}ELEVEE{% else %}HIGH{% endif %}{% else %}{% if lang == 'ar' %}حرج{% elif lang == 'fr' %}CRITIQUE{% else %}CRITICAL{% endif %}{% endif %}</span>
+        <span><i class="fa fa-tag"></i> {% if alert.alert_type == 'intrusion' %}{% if lang == 'ar' %}تم كشف التسلل{% elif lang == 'fr' %}Intrusion detectee{% else %}Intrusion Detected{% endif %}{% elif alert.alert_type == 'face' %}{% if lang == 'ar' %}تم التعرف على الوجه{% elif lang == 'fr' %}Visage reconnu{% else %}Face Recognized{% endif %}{% elif alert.alert_type == 'object' %}{% if lang == 'ar' %}تم كشف جسم{% elif lang == 'fr' %}Objet detecte{% else %}Object Detected{% endif %}{% elif alert.alert_type == 'motion' %}{% if lang == 'ar' %}تم كشف حركة{% elif lang == 'fr' %}Mouvement detecte{% else %}Motion Detected{% endif %}{% elif alert.alert_type == 'battery' %}{% if lang == 'ar' %}بطارية منخفضة{% elif lang == 'fr' %}Batterie faible{% else %}Low Battery{% endif %}{% elif alert.alert_type == 'connection' %}{% if lang == 'ar' %}انقطاع الاتصال{% elif lang == 'fr' %}Connexion perdue{% else %}Connection Lost{% endif %}{% elif alert.alert_type == 'geofence' %}{% if lang == 'ar' %}خرق النطاق الجغرافي{% elif lang == 'fr' %}Violation de geofence{% else %}Geofence Breach{% endif %}{% else %}{% if lang == 'ar' %}تنبيه نظام{% elif lang == 'fr' %}Alerte systeme{% else %}System Alert{% endif %}{% endif %}</span>
+        {% if alert.drone %}<span><i class="fa fa-helicopter"></i> {{ alert.drone.name }}</span>{% endif %}
+        <span class="text-muted"><i class="fa fa-clock"></i> {% if lang == 'ar' %}منذ {{ alert.created_at|timesince }}{% elif lang == 'fr' %}il y a {{ alert.created_at|timesince }}{% else %}{{ alert.created_at|timesince }} ago{% endif %}</span>
+      </div>
+      <div class="alert-card-desc">{{ alert.description|truncatechars:120 }}</div>
+    </div>
+    <div class="alert-card-actions">
+      <a href="{% url 'core:alert_detail' alert.pk %}" class="btn btn-sm btn-outline">
+        <i class="fa fa-eye"></i> {% if lang == 'ar' %}عرض{% elif lang == 'fr' %}Voir{% else %}View{% endif %}
+      </a>
+      {% if not alert.is_resolved %}
+      <a href="{% url 'core:resolve_alert' alert.pk %}" class="btn btn-sm btn-success">
+        <i class="fa fa-check"></i> {% if lang == 'ar' %}حل{% elif lang == 'fr' %}Resoudre{% else %}Resolve{% endif %}
+      </a>
+      {% endif %}
+      {% if request.user.is_admin %}
+      <button
+        type="button"
+        class="btn btn-sm btn-red alert-delete-trigger"
+        data-alert-delete
+        data-delete-url="{% url 'core:alert_delete' alert.pk %}"
+        data-alert-title="{{ alert.title|escapejs }}"
+      >
+        <i class="fa fa-trash"></i> {% if lang == 'ar' %}حذف{% elif lang == 'fr' %}Supprimer{% else %}Delete{% endif %}
+      </button>
+      {% endif %}
+    </div>
+  </div>
+  {% empty %}
+  <div class="empty-state glass">
+    <i class="fa fa-shield-check"></i>
+    <h3>{% if lang == 'ar' %}لا توجد تنبيهات{% elif lang == 'fr' %}Aucune alerte trouvee{% else %}No Alerts Found{% endif %}</h3>
+    <p>{% if lang == 'ar' %}كل شيء واضح - لا توجد تنبيهات تطابق الفلاتر الحالية.{% elif lang == 'fr' %}Tout est clair - aucune alerte ne correspond aux filtres actuels.{% else %}All clear - no alerts match your current filters.{% endif %}</p>
+  </div>
+  {% endfor %}
+</div>
+
+{% if request.user.is_admin %}
+<form id="alert-delete-form" method="post" style="display:none;">
+  {% csrf_token %}
+</form>
+
+<div id="alert-delete-modal" hidden>
+  <div class="alert-delete-backdrop" data-alert-delete-close></div>
+  <div class="alert-delete-card glass" role="dialog" aria-modal="true" aria-labelledby="alert-delete-title">
+    <h3 class="alert-delete-title" id="alert-delete-title">
+      {% if lang == 'ar' %}تأكيد حذف التنبيه{% elif lang == 'fr' %}Confirmer la suppression de l'alerte{% else %}Confirm Alert Deletion{% endif %}
+    </h3>
+    <p class="alert-delete-text" id="alert-delete-text"></p>
+    <p id="alert-delete-target" class="alert-delete-target"></p>
+    <div class="alert-delete-actions">
+      <button type="button" class="btn btn-sm btn-outline" data-alert-delete-close>
+        {% if lang == 'ar' %}إلغاء{% elif lang == 'fr' %}Annuler{% else %}Cancel{% endif %}
+      </button>
+      <button type="button" class="btn btn-sm btn-red" id="alert-delete-confirm-btn">
+        <i class="fa fa-trash"></i> {% if lang == 'ar' %}تأكيد الحذف{% elif lang == 'fr' %}Confirmer{% else %}Confirm Delete{% endif %}
+      </button>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endwith %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Live alerts polling — add new alerts to top
+setInterval(() => {
+  fetch("{% url 'core:live_alerts_api' %}")
+    .then(r => r.json())
+    .then(d => {
+      if (d.count > 0) {
+        showAlertPopup(d.alerts[0]);
+      }
+    });
+}, 10000);
+
+{% if request.user.is_admin %}
+(function () {
+  const modal = document.getElementById('alert-delete-modal');
+  const form = document.getElementById('alert-delete-form');
+  const messageText = document.getElementById('alert-delete-text');
+  const target = document.getElementById('alert-delete-target');
+  const confirmBtn = document.getElementById('alert-delete-confirm-btn');
+  const triggers = Array.from(document.querySelectorAll('[data-alert-delete]'));
+  const deleteAllTrigger = document.getElementById('alert-delete-all-trigger');
+  const closeEls = Array.from(document.querySelectorAll('[data-alert-delete-close]'));
+  let pendingUrl = '';
+  let pendingMode = 'single';
+
+  const messages = {
+    singlePrompt: "{% if lang == 'ar' %}سيتم حذف هذا التنبيه نهائيا:{% elif lang == 'fr' %}Cette alerte sera supprimee definitivement :{% else %}This alert will be permanently deleted:{% endif %}",
+    allPrompt: "{% if lang == 'ar' %}تحذير: سيتم حذف جميع التنبيهات نهائيا.{% elif lang == 'fr' %}Attention : toutes les alertes seront supprimees definitivement.{% else %}Warning: all alerts will be permanently deleted.{% endif %}"
+  };
+
+  if (!modal || !form || !messageText || !target || !confirmBtn || (!triggers.length && !deleteAllTrigger)) {
+    return;
+  }
+
+  function closeModal() {
+    modal.hidden = true;
+    pendingUrl = '';
+    pendingMode = 'single';
+    messageText.textContent = '';
+    target.textContent = '';
+  }
+
+  function openModal(url, title, mode) {
+    pendingUrl = url || '';
+    pendingMode = mode || 'single';
+    if (pendingMode === 'all') {
+      messageText.textContent = messages.allPrompt;
+    } else {
+      messageText.textContent = messages.singlePrompt;
+    }
+    target.textContent = title || '#';
+    modal.hidden = false;
+  }
+
+  triggers.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      openModal(
+        btn.getAttribute('data-delete-url'),
+        btn.getAttribute('data-alert-title'),
+        btn.getAttribute('data-delete-mode') || 'single'
+      );
+    });
+  });
+
+  if (deleteAllTrigger) {
+    deleteAllTrigger.addEventListener('click', function () {
+      openModal(
+        deleteAllTrigger.getAttribute('data-delete-url'),
+        deleteAllTrigger.getAttribute('data-alert-title'),
+        deleteAllTrigger.getAttribute('data-delete-mode') || 'all'
+      );
+    });
+  }
+
+  closeEls.forEach(function (el) {
+    el.addEventListener('click', closeModal);
+  });
+
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape' && !modal.hidden) {
+      closeModal();
+    }
+  });
+
+  confirmBtn.addEventListener('click', function () {
+    if (!pendingUrl) {
+      closeModal();
+      return;
+    }
+    form.action = pendingUrl;
+    form.submit();
+  });
+})();
+{% endif %}
+</script>
+{% endblock %}

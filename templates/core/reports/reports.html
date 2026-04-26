@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+{% block title %}{% if request.user.language == 'ar' %}التقارير{% elif request.user.language == 'fr' %}Rapports{% else %}Reports{% endif %}{% endblock %}
+{% block page_title %}
+{% with lang=request.user.language|default:'en' %}
+<i class="fa fa-chart-bar"></i> {% if lang == 'ar' %}التحليلات والتقارير{% elif lang == 'fr' %}Analytique et rapports{% else %}Analytics & Reports{% endif %}
+{% endwith %}
+{% endblock %}
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+{% block content %}
+{% with lang=request.user.language|default:'en' %}
+
+<!-- KPI Strip -->
+<div class="kpi-grid kpi-grid-sm">
+  <div class="kpi-card glass kpi-blue">
+    <div class="kpi-icon"><i class="fa fa-bell"></i></div>
+    <div class="kpi-body">
+      <div class="kpi-value">{{ total_alerts }}</div>
+      <div class="kpi-label">{% if lang == 'ar' %}اجمالي التنبيهات{% elif lang == 'fr' %}Total des alertes{% else %}Total Alerts{% endif %}</div>
+    </div>
+  </div>
+  <div class="kpi-card glass kpi-green">
+    <div class="kpi-icon"><i class="fa fa-check-circle"></i></div>
+    <div class="kpi-body">
+      <div class="kpi-value">{{ resolved }}</div>
+      <div class="kpi-label">{% if lang == 'ar' %}محلولة{% elif lang == 'fr' %}Resolues{% else %}Resolved{% endif %}</div>
+    </div>
+  </div>
+  <div class="kpi-card glass kpi-yellow">
+    <div class="kpi-icon"><i class="fa fa-helicopter"></i></div>
+    <div class="kpi-body">
+      <div class="kpi-value">{{ active_drones }}</div>
+      <div class="kpi-label">{% if lang == 'ar' %}طائرات نشطة{% elif lang == 'fr' %}Drones actifs{% else %}Active Drones{% endif %}</div>
+    </div>
+  </div>
+</div>
+
+<!-- Charts -->
+<div class="charts-grid">
+  <div class="chart-card glass">
+    <div class="widget-header">
+      <span><i class="fa fa-chart-line"></i> {% if lang == 'ar' %}التنبيهات - اخر 7 ايام{% elif lang == 'fr' %}Alertes - 7 derniers jours{% else %}Alerts - Last 7 Days{% endif %}</span>
+      <button class="btn btn-xs btn-outline" onclick="exportChart('alerts-chart')">
+        <i class="fa fa-download"></i> {% if lang == 'ar' %}تصدير{% elif lang == 'fr' %}Exporter{% else %}Export{% endif %}
+      </button>
+    </div>
+    <canvas id="alerts-chart" height="120"></canvas>
+  </div>
+
+  <div class="chart-card glass">
+    <div class="widget-header">
+      <span><i class="fa fa-chart-pie"></i> {% if lang == 'ar' %}توزيع الشدة{% elif lang == 'fr' %}Distribution de severite{% else %}Severity Distribution{% endif %}</span>
+    </div>
+    <canvas id="severity-chart" height="120"></canvas>
+  </div>
+
+  <div class="chart-card glass">
+    <div class="widget-header">
+      <span><i class="fa fa-chart-bar"></i> {% if lang == 'ar' %}التنبيهات لكل طائرة{% elif lang == 'fr' %}Alertes par drone{% else %}Alerts per Drone{% endif %}</span>
+    </div>
+    <canvas id="drone-chart" height="120"></canvas>
+  </div>
+</div>
+
+<!-- Export Buttons -->
+<div class="export-bar glass">
+  <span><i class="fa fa-file-export"></i> {% if lang == 'ar' %}تصدير التقارير{% elif lang == 'fr' %}Exporter les rapports{% else %}Export Reports{% endif %}</span>
+  <button class="btn btn-outline btn-sm" onclick="window.print()">
+    <i class="fa fa-print"></i> {% if lang == 'ar' %}طباعة التقرير{% elif lang == 'fr' %}Imprimer le rapport{% else %}Print Report{% endif %}
+  </button>
+  <button class="btn btn-outline btn-sm" onclick="alert('{% if lang == 'ar' %}تصدير CSV قريبا{% elif lang == 'fr' %}Export CSV bientot disponible{% else %}CSV export coming soon{% endif %}')">
+    <i class="fa fa-file-csv"></i> {% if lang == 'ar' %}تصدير CSV{% elif lang == 'fr' %}Exporter CSV{% else %}Export CSV{% endif %}
+  </button>
+  <button class="btn btn-outline btn-sm" onclick="alert('{% if lang == 'ar' %}تصدير PDF قريبا{% elif lang == 'fr' %}Export PDF bientot disponible{% else %}PDF export coming soon{% endif %}')">
+    <i class="fa fa-file-pdf"></i> {% if lang == 'ar' %}تصدير PDF{% elif lang == 'fr' %}Exporter PDF{% else %}Export PDF{% endif %}
+  </button>
+</div>
+
+{% endwith %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(() => {
+  const reportsPageLang = '{{ request.user.language|default:"en" }}';
+  const chartI18n = {
+    en: { alerts: 'Alerts', low: 'Low', medium: 'Medium', high: 'High', critical: 'Critical' },
+    ar: { alerts: 'التنبيهات', low: 'منخفض', medium: 'متوسط', high: 'عال', critical: 'حرج' },
+    fr: { alerts: 'Alertes', low: 'Faible', medium: 'Moyenne', high: 'Elevee', critical: 'Critique' },
+  };
+  const ct = chartI18n[reportsPageLang] || chartI18n.en;
+
+  const chartDefaults = {
+    color: '#94a3b8',
+    borderColor: 'rgba(148,163,184,0.1)',
+  };
+  Chart.defaults.color = chartDefaults.color;
+  Chart.defaults.borderColor = chartDefaults.borderColor;
+
+  // Alerts per day
+  new Chart(document.getElementById('alerts-chart'), {
+    type: 'line',
+    data: {
+      labels: {{ days|safe }},
+      datasets: [{
+        label: ct.alerts,
+        data: {{ alert_counts|safe }},
+        borderColor: '#38bdf8',
+        backgroundColor: 'rgba(56,189,248,0.1)',
+        fill: true,
+        tension: 0.4,
+        pointBackgroundColor: '#38bdf8',
+      }]
+    },
+    options: { responsive: true, plugins: { legend: { display: false } } }
+  });
+
+  // Severity donut
+  new Chart(document.getElementById('severity-chart'), {
+    type: 'doughnut',
+    data: {
+      labels: [ct.low, ct.medium, ct.high, ct.critical],
+      datasets: [{
+        data: [{{ severity_data.low }}, {{ severity_data.medium }}, {{ severity_data.high }}, {{ severity_data.critical }}],
+        backgroundColor: ['#22c55e','#f59e0b','#f97316','#ef4444'],
+        borderWidth: 0,
+      }]
+    },
+    options: { responsive: true, cutout: '65%' }
+  });
+
+  // Alerts per drone
+  const droneStats = {{ drone_stats|safe }};
+  new Chart(document.getElementById('drone-chart'), {
+    type: 'bar',
+    data: {
+      labels: Object.keys(droneStats),
+      datasets: [{
+        label: ct.alerts,
+        data: Object.values(droneStats),
+        backgroundColor: 'rgba(56,189,248,0.7)',
+        borderRadius: 6,
+      }]
+    },
+    options: { responsive: true, plugins: { legend: { display: false } } }
+  });
+})();
+
+function exportChart(id) {
+  const canvas = document.getElementById(id);
+  const link = document.createElement('a');
+  link.download = id + '.png';
+  link.href = canvas.toDataURL();
+  link.click();
+}
+</script>
+{% endblock %}

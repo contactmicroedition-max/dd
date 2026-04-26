@@ -1,0 +1,56 @@
+/* DroneSec - Sage Calm Theme (muted, non-dark) */
+
+:root {
+  --bg-base:       #eef2ee;
+  --bg-surface:    #f6f8f4;
+  --bg-card:       rgba(246, 248, 244, 0.9);
+  --bg-hover:      rgba(94, 140, 117, 0.08);
+
+  --border:        rgba(98, 131, 112, 0.18);
+  --border-hover:  rgba(98, 131, 112, 0.34);
+
+  --blue:          #4f7f6a;
+  --blue-dim:      rgba(79, 127, 106, 0.12);
+  --blue-glow:     0 0 20px rgba(79, 127, 106, 0.12);
+
+  --red:           #b5534c;
+  --red-dim:       rgba(181, 83, 76, 0.12);
+  --green:         #4f7f6a;
+  --green-dim:     rgba(79, 127, 106, 0.12);
+  --yellow:        #b28a3d;
+  --yellow-dim:    rgba(178, 138, 61, 0.13);
+  --orange:        #b36f40;
+  --purple:        #7b6f8d;
+  --purple-dim:    rgba(123, 111, 141, 0.12);
+
+  --text-primary:  #2e3a33;
+  --text-secondary:#5f6f66;
+  --text-muted:    #8b9a92;
+
+  --glass-bg:      rgba(246, 248, 244, 0.82);
+  --glass-border:  rgba(98, 131, 112, 0.24);
+  --glass-blur:    blur(10px);
+
+  --shadow:        0 6px 18px rgba(39, 57, 47, 0.11);
+  --shadow-glow:   0 0 14px rgba(79, 127, 106, 0.08);
+}
+
+body::before {
+  background:
+    radial-gradient(ellipse 78% 58% at 18% 12%, rgba(79,127,106,0.05) 0%, transparent 58%),
+    radial-gradient(ellipse 65% 52% at 82% 80%, rgba(123,111,141,0.04) 0%, transparent 62%);
+}
+
+#sidebar {
+  background: rgba(246, 248, 244, 0.96);
+  border-right-color: var(--border);
+}
+
+.topbar {
+  background: rgba(238, 242, 238, 0.95);
+}
+
+.form-input {
+  background: #f9fbf8;
+  border: 1px solid var(--border);
+}

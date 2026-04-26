@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% block title %}{% if request.user.language == 'ar' %}تسجيلات البث{% elif request.user.language == 'fr' %}Enregistrements du flux{% else %}Stream Recordings{% endif %}{% endblock %}
+{% block page_title %}
+{% with lang=request.user.language|default:'en' %}
+<i class="fa fa-photo-film"></i> {% if lang == 'ar' %}تسجيلات البث المباشر{% elif lang == 'fr' %}Enregistrements du flux en direct{% else %}Live Stream Recordings{% endif %}
+{% endwith %}
+{% endblock %}
+{% block content %}
+{% with lang=request.user.language|default:'en' %}
+
+<div class="glass" style="padding: 16px; margin-bottom: 16px;">
+  <div class="widget-header" style="margin-bottom: 12px;"><span><i class="fa fa-upload"></i> {% if lang == 'ar' %}رفع تسجيل جديد{% elif lang == 'fr' %}Televerser un nouvel enregistrement{% else %}Upload New Recording{% endif %}</span></div>
+  <form method="post" enctype="multipart/form-data" class="form-grid-2">
+    {% csrf_token %}
+    <div class="form-group">
+      <label>{% if lang == 'ar' %}العنوان{% elif lang == 'fr' %}Titre{% else %}Title{% endif %}</label>
+      {{ upload_form.title }}
+      {% if upload_form.title.errors %}<span class="field-error">{{ upload_form.title.errors.0 }}</span>{% endif %}
+    </div>
+    <div class="form-group">
+      <label>{% if lang == 'ar' %}الطائرة{% elif lang == 'fr' %}Drone{% else %}Drone{% endif %}</label>
+      {{ upload_form.drone }}
+      {% if upload_form.drone.errors %}<span class="field-error">{{ upload_form.drone.errors.0 }}</span>{% endif %}
+    </div>
+    <div class="form-group">
+      <label>{% if lang == 'ar' %}ملف التسجيل{% elif lang == 'fr' %}Fichier video{% else %}Recording File{% endif %}</label>
+      {{ upload_form.recording_file }}
+      {% if upload_form.recording_file.errors %}<span class="field-error">{{ upload_form.recording_file.errors.0 }}</span>{% endif %}
+    </div>
+    <div class="form-group">
+      <label>{% if lang == 'ar' %}المدة بالثواني{% elif lang == 'fr' %}Duree en secondes{% else %}Duration (seconds){% endif %}</label>
+      {{ upload_form.duration_seconds }}
+      {% if upload_form.duration_seconds.errors %}<span class="field-error">{{ upload_form.duration_seconds.errors.0 }}</span>{% endif %}
+    </div>
+    <div class="form-group" style="grid-column: 1 / -1;">
+      <label>{% if lang == 'ar' %}ملاحظات{% elif lang == 'fr' %}Notes{% else %}Notes{% endif %}</label>
+      {{ upload_form.description }}
+      {% if upload_form.description.errors %}<span class="field-error">{{ upload_form.description.errors.0 }}</span>{% endif %}
+    </div>
+    <div style="grid-column: 1 / -1;">
+      <button type="submit" class="btn btn-primary"><i class="fa fa-cloud-arrow-up"></i> {% if lang == 'ar' %}رفع التسجيل{% elif lang == 'fr' %}Televerser{% else %}Upload Recording{% endif %}</button>
+    </div>
+  </form>
+</div>
+
+<div class="filter-bar glass">
+  <form method="get" class="filter-form">
+    <input type="text" name="q" value="{{ request.GET.q|default:'' }}" class="form-input form-input-sm" placeholder="{% if lang == 'ar' %}بحث بالعنوان او الطائرة{% elif lang == 'fr' %}Rechercher par titre ou drone{% else %}Search title or drone{% endif %}" />
+    <select name="drone" class="form-input form-input-sm" onchange="this.form.submit()">
+      <option value="">{% if lang == 'ar' %}كل الطائرات{% elif lang == 'fr' %}Tous les drones{% else %}All Drones{% endif %}</option>
+      {% for d in drones %}
+      <option value="{{ d.id }}" {% if request.GET.drone == d.id|stringformat:'s' %}selected{% endif %}>{{ d.name }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="btn btn-sm btn-outline"><i class="fa fa-filter"></i> {% if lang == 'ar' %}تصفية{% elif lang == 'fr' %}Filtrer{% else %}Filter{% endif %}</button>
+  </form>
+</div>
+
+<div class="table-card glass">
+  <div class="table-header"><i class="fa fa-photo-film"></i> {% if lang == 'ar' %}ارشيف التسجيلات{% elif lang == 'fr' %}Archive des enregistrements{% else %}Recordings Archive{% endif %} ({{ total_recordings }})</div>
+  <div style="overflow-x: auto;">
+    <table class="ds-table">
+      <thead>
+        <tr>
+          <th>{% if lang == 'ar' %}العنوان{% elif lang == 'fr' %}Titre{% else %}Title{% endif %}</th>
+          <th>{% if lang == 'ar' %}الطائرة{% elif lang == 'fr' %}Drone{% else %}Drone{% endif %}</th>
+          <th>{% if lang == 'ar' %}الحجم{% elif lang == 'fr' %}Taille{% else %}Size{% endif %}</th>
+          <th>{% if lang == 'ar' %}المدة{% elif lang == 'fr' %}Duree{% else %}Duration{% endif %}</th>
+          <th>{% if lang == 'ar' %}بواسطة{% elif lang == 'fr' %}Par{% else %}By{% endif %}</th>
+          <th>{% if lang == 'ar' %}التاريخ{% elif lang == 'fr' %}Date{% else %}Date{% endif %}</th>
+          <th>{% if lang == 'ar' %}التحكم{% elif lang == 'fr' %}Actions{% else %}Actions{% endif %}</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for rec in recordings %}
+        <tr>
+          <td>
+            <div class="fw-600">{{ rec.title }}</div>
+            {% if rec.description %}<div class="text-muted" style="max-width: 340px; white-space: normal;">{{ rec.description|truncatechars:90 }}</div>{% endif %}
+          </td>
+          <td>{% if rec.drone %}{{ rec.drone.name }}{% else %}-{% endif %}</td>
+          <td>{{ rec.file_size_bytes|filesizeformat }}</td>
+          <td>{% if rec.duration_seconds %}{{ rec.duration_seconds }}s{% else %}-{% endif %}</td>
+          <td>{% if rec.uploaded_by %}{{ rec.uploaded_by.username }}{% else %}-{% endif %}</td>
+          <td>{{ rec.created_at|date:'Y-m-d H:i' }}</td>
+          <td>
+            <a href="{% url 'core:stream_recording_download' rec.id %}" class="btn btn-sm btn-outline"><i class="fa fa-download"></i> {% if lang == 'ar' %}تنزيل{% elif lang == 'fr' %}Telecharger{% else %}Download{% endif %}</a>
+            <form method="post" action="{% url 'core:stream_recording_delete' rec.id %}" style="display:inline;">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm btn-red"><i class="fa fa-trash"></i> {% if lang == 'ar' %}حذف{% elif lang == 'fr' %}Supprimer{% else %}Delete{% endif %}</button>
+            </form>
+          </td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="7" style="text-align:center; color: var(--text-muted);">{% if lang == 'ar' %}لا توجد تسجيلات حاليا.{% elif lang == 'fr' %}Aucun enregistrement disponible.{% else %}No recordings available yet.{% endif %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endwith %}
+{% endblock %}

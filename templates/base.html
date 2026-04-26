@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="{% if user.is_authenticated %}{{ user.language }}{% else %}{{ request.session.preferred_language|default:'en' }}{% endif %}" dir="{% if user.is_authenticated and user.language == 'ar' or not user.is_authenticated and request.session.preferred_language == 'ar' %}rtl{% else %}ltr{% endif %}" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}DroneSec{% endblock %} — DroneSec</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  {% load static %}
+  <!-- Main Stylesheet -->
+  <link rel="stylesheet" href="{% static 'css/main.css' %}?v=16" />
+  <!-- Dynamic Theme Overrides -->
+  {% if user.is_authenticated and user.theme != 'dark' %}
+    <link rel="stylesheet" href="{% static 'css/theme-' %}{{ user.theme }}.css?v=14" />
+  {% endif %}
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+{% if messages %}
+<div id="toast-container">
+  {% for msg in messages %}
+  <div class="toast toast-{{ msg.tags }}" data-auto-dismiss data-auto-dismiss-ms="{% if 'signup-success' in msg.tags %}6000{% else %}4000{% endif %}">
+    <i class="fa {% if 'success' in msg.tags %}fa-check-circle{% elif 'error' in msg.tags %}fa-exclamation-circle{% elif 'warning' in msg.tags %}fa-triangle-exclamation{% else %}fa-info-circle{% endif %}"></i>
+    <span>{{ msg }}</span>
+    <button class="toast-close" onclick="this.parentElement.remove()"><i class="fa fa-xmark"></i></button>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if user.is_authenticated %}
+{% with lang=user.language|default:'en' %}
+<!-- ══════════ SIDEBAR ══════════ -->
+<aside id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon"><i class="fa fa-shield-halved"></i></div>
+    <div class="logo-text">Drone<span>Sec</span></div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">{% if lang == 'ar' %}الرئيسية{% elif lang == 'fr' %}Principal{% else %}Main{% endif %}</div>
+    <a href="{% url 'core:dashboard' %}" class="nav-item {% if request.resolver_match.namespace == 'core' %}active{% endif %}" data-tooltip="{% if lang == 'ar' %}لوحة التحكم{% elif lang == 'fr' %}Tableau de bord{% else %}Dashboard{% endif %}">
+      <i class="fa fa-gauge-high"></i><span>{% if lang == 'ar' %}لوحة التحكم{% elif lang == 'fr' %}Tableau de bord{% else %}Dashboard{% endif %}</span>
+    </a>
+    <a href="{% url 'core:live_stream' %}" class="nav-item {% if request.resolver_match.namespace == 'core' %}active{% endif %}" data-tooltip="{% if lang == 'ar' %}بث مباشر{% elif lang == 'fr' %}Flux en direct{% else %}Live Stream{% endif %}">
+      <i class="fa fa-video"></i><span>{% if lang == 'ar' %}بث مباشر{% elif lang == 'fr' %}Flux en direct{% else %}Live Stream{% endif %}</span>
+      <span class="nav-badge live-badge">{% if lang == 'ar' %}مباشر{% elif lang == 'fr' %}DIRECT{% else %}LIVE{% endif %}</span>
+    </a>
+    <a href="{% url 'core:drone_list' %}" class="nav-item {% if request.resolver_match.namespace == 'core' %}active{% endif %}" data-tooltip="{% if lang == 'ar' %}الطائرات بدون طيار{% elif lang == 'fr' %}Drones{% else %}Drones{% endif %}">
+      <i class="fa fa-helicopter"></i><span>{% if lang == 'ar' %}الطائرات بدون طيار{% elif lang == 'fr' %}Drones{% else %}Drones{% endif %}</span>
+    </a>
+
+    <div class="nav-section-label">{% if lang == 'ar' %}الأمان{% elif lang == 'fr' %}Securite{% else %}Security{% endif %}</div>
+    <a href="{% url 'core:alert_list' %}" class="nav-item {% if request.resolver_match.namespace == 'core' %}active{% endif %}" data-tooltip="{% if lang == 'ar' %}التنبيهات{% elif lang == 'fr' %}Alertes{% else %}Alerts{% endif %}">
+      <i class="fa fa-bell"></i><span>{% if lang == 'ar' %}التنبيهات{% elif lang == 'fr' %}Alertes{% else %}Alerts{% endif %}</span>
+      {% if unread_count %}<span class="nav-badge alert-badge">{{ unread_count }}</span>{% endif %}
+    </a>
+    <a href="{% url 'core:reports' %}" class="nav-item {% if request.resolver_match.namespace == 'core' %}active{% endif %}" data-tooltip="{% if lang == 'ar' %}التقارير{% elif lang == 'fr' %}Rapports{% else %}Reports{% endif %}">
+      <i class="fa fa-chart-bar"></i><span>{% if lang == 'ar' %}التقارير{% elif lang == 'fr' %}Rapports{% else %}Reports{% endif %}</span>
+    </a>
+    <a href="{% url 'core:chat' %}" class="nav-item {% if request.resolver_match.url_name == 'chat' or request.resolver_match.url_name == 'chat_with_user' %}active{% endif %}" data-tooltip="{% if lang == 'ar' %}المحادثة{% elif lang == 'fr' %}Discussion{% else %}Chat{% endif %}">
+      <i class="fa fa-comments"></i><span>{% if lang == 'ar' %}المحادثة{% elif lang == 'fr' %}Discussion{% else %}Chat{% endif %}</span>
+    </a>
+
+    {% if user.is_admin %}
+    <div class="nav-section-label">{% if lang == 'ar' %}الادارة{% elif lang == 'fr' %}Administration{% else %}Admin{% endif %}</div>
+    <a href="{% url 'core:agents_list' %}" class="nav-item {% if request.resolver_match.url_name == 'agents_list' %}active{% endif %}" data-tooltip="{% if lang == 'ar' %}الوكلاء{% elif lang == 'fr' %}Agents{% else %}Agents{% endif %}">
+      <i class="fa fa-users"></i><span>{% if lang == 'ar' %}الوكلاء{% elif lang == 'fr' %}Agents{% else %}Agents{% endif %}</span>
+    </a>
+    <a href="{% url 'core:pending_agents' %}" class="nav-item {% if request.resolver_match.url_name == 'pending_agents' %}active{% endif %}" data-tooltip="{% if lang == 'ar' %}الوكلاء المعلّقون{% elif lang == 'fr' %}Agents en attente{% else %}Pending Agents{% endif %}">
+      <i class="fa fa-user-clock"></i><span>{% if lang == 'ar' %}الوكلاء المعلّقون{% elif lang == 'fr' %}Agents en attente{% else %}Pending Agents{% endif %}</span>
+      {% if pending_agents %}<span class="nav-badge warn-badge">{{ pending_agents }}</span>{% endif %}
+    </a>
+    <a href="{% url 'core:security_system_logs' %}" class="nav-item {% if request.resolver_match.url_name == 'security_system_logs' %}active{% endif %}" data-tooltip="{% if lang == 'ar' %}سجلات النظام الامني{% elif lang == 'fr' %}Journaux de securite{% else %}Security Logs{% endif %}">
+      <i class="fa fa-shield"></i><span>{% if lang == 'ar' %}سجلات النظام{% elif lang == 'fr' %}Journaux systeme{% else %}System Logs{% endif %}</span>
+    </a>
+    <a href="{% url 'core:stream_recordings_admin' %}" class="nav-item {% if request.resolver_match.url_name == 'stream_recordings_admin' %}active{% endif %}" data-tooltip="{% if lang == 'ar' %}تسجيلات البث{% elif lang == 'fr' %}Enregistrements{% else %}Stream Recordings{% endif %}">
+      <i class="fa fa-photo-film"></i><span>{% if lang == 'ar' %}تسجيلات البث{% elif lang == 'fr' %}Enregistrements{% else %}Recordings{% endif %}</span>
+    </a>
+    <a href="/admin/" class="nav-item" data-tooltip="{% if lang == 'ar' %}ادارة Django{% elif lang == 'fr' %}Admin Django{% else %}Django Admin{% endif %}" target="_blank">
+      <i class="fa fa-screwdriver-wrench"></i><span>{% if lang == 'ar' %}ادارة Django{% elif lang == 'fr' %}Admin Django{% else %}Django Admin{% endif %}</span>
+    </a>
+    {% endif %}
+
+    <div class="nav-section-label">{% if lang == 'ar' %}الحساب{% elif lang == 'fr' %}Compte{% else %}Account{% endif %}</div>
+    <a href="{% url 'core:settings' %}" class="nav-item {% if request.resolver_match.namespace == 'core' %}active{% endif %}" data-tooltip="{% if lang == 'ar' %}الاعدادات{% elif lang == 'fr' %}Parametres{% else %}Settings{% endif %}">
+      <i class="fa fa-gear"></i><span>{% if lang == 'ar' %}الاعدادات{% elif lang == 'fr' %}Parametres{% else %}Settings{% endif %}</span>
+    </a>
+    <a href="{% url 'core:logout' %}" class="nav-item nav-logout" data-tooltip="{% if lang == 'ar' %}تسجيل الخروج{% elif lang == 'fr' %}Deconnexion{% else %}Logout{% endif %}">
+      <i class="fa fa-right-from-bracket"></i><span>{% if lang == 'ar' %}تسجيل الخروج{% elif lang == 'fr' %}Deconnexion{% else %}Logout{% endif %}</span>
+    </a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="sidebar-user">
+      {% if user.avatar %}
+        <img src="{{ user.avatar.url }}" alt="avatar" class="user-avatar-sm" />
+      {% else %}
+        <div class="user-avatar-placeholder">{{ user.first_name|first|upper }}{{ user.last_name|first|upper }}</div>
+      {% endif %}
+      <div>
+        <div class="user-name">{{ user.get_full_name|default:user.username }}</div>
+        <div class="user-role role-{{ user.role }}">{% if user.role == 'admin' %}{% if lang == 'ar' %}مشرف{% elif lang == 'fr' %}Admin{% else %}Admin{% endif %}{% else %}{% if lang == 'ar' %}وكيل{% elif lang == 'fr' %}Agent{% else %}Agent{% endif %}{% endif %}</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- ══════════ MAIN ══════════ -->
+<div class="main-wrap">
+  <!-- Top Navbar -->
+  <header class="topbar">
+    <button id="sidebar-toggle" onclick="document.getElementById('sidebar').classList.toggle('collapsed')">
+      <i class="fa fa-bars"></i>
+    </button>
+    <div class="topbar-title">{% block page_title %}DroneSec{% endblock %}</div>
+    <div class="topbar-actions">
+      <button class="topbar-btn" onclick="simulateAlert()" title="{% if lang == 'ar' %}محاكاة تنبيه{% elif lang == 'fr' %}Simuler une alerte{% else %}Simulate Alert{% endif %}" data-tooltip="{% if lang == 'ar' %}محاكاة تنبيه{% elif lang == 'fr' %}Simuler une alerte{% else %}Simulate Alert{% endif %}">
+        <i class="fa fa-bolt"></i>
+      </button>
+      <div class="notif-wrapper">
+        <button class="topbar-btn" id="notif-btn" data-tooltip="{% if lang == 'ar' %}الاشعارات{% elif lang == 'fr' %}Notifications{% else %}Notifications{% endif %}">
+          <i class="fa fa-bell"></i>
+          <span class="notif-dot" id="notif-dot" style="display:none"></span>
+        </button>
+        <div class="notif-panel" id="notif-panel">
+          <div class="notif-header"><span>{% if lang == 'ar' %}تنبيهات مباشرة{% elif lang == 'fr' %}Alertes en direct{% else %}Live Alerts{% endif %}</span><span class="notif-count" id="notif-count">0</span></div>
+          <div id="notif-list"><p class="notif-empty">{% if lang == 'ar' %}لا توجد تنبيهات جديدة{% elif lang == 'fr' %}Aucune nouvelle alerte{% else %}No new alerts{% endif %}</p></div>
+        </div>
+      </div>
+      <div class="notif-wrapper">
+        <button class="topbar-btn" id="msg-btn" data-tooltip="{% if lang == 'ar' %}الرسائل{% elif lang == 'fr' %}Messages{% else %}Messages{% endif %}">
+          <i class="fa fa-message"></i>
+          <span class="notif-dot msg-dot" id="msg-dot" style="display:none"></span>
+        </button>
+        <div class="notif-panel msg-panel" id="msg-panel">
+          <div class="notif-header"><span>{% if lang == 'ar' %}الرسائل الجديدة{% elif lang == 'fr' %}Nouveaux messages{% else %}New Messages{% endif %}</span><span class="notif-count" id="msg-count">0</span></div>
+          <div id="msg-list"><p class="notif-empty">{% if lang == 'ar' %}لا توجد رسائل جديدة{% elif lang == 'fr' %}Aucun nouveau message{% else %}No new messages{% endif %}</p></div>
+          <a href="{% url 'core:chat' %}" class="msg-panel-footer">{% if lang == 'ar' %}فتح المحادثة{% elif lang == 'fr' %}Ouvrir la messagerie{% else %}Open Chat{% endif %}</a>
+        </div>
+      </div>
+      <a href="{% url 'core:settings' %}" class="topbar-user" data-tooltip="{% if lang == 'ar' %}الملف الشخصي{% elif lang == 'fr' %}Profil{% else %}Profile{% endif %}">
+        {% if user.avatar %}
+          <img src="{{ user.avatar.url }}" alt="avatar" class="user-avatar-sm" />
+        {% else %}
+          <div class="user-avatar-placeholder sm">{{ user.first_name|first|upper }}{{ user.last_name|first|upper }}</div>
+        {% endif %}
+      </a>
+    </div>
+  </header>
+
+  <main class="page-content">
+    {% block content %}{% endblock %}
+  </main>
+</div>
+
+<div id="ai-bot-widget" class="ai-bot-widget" data-api-url="{% url 'core:ai_assistant_chat_api' %}">
+  <button id="ai-bot-toggle" class="ai-bot-toggle" type="button" aria-label="{% if lang == 'ar' %}مساعد ذكي{% elif lang == 'fr' %}Assistant IA{% else %}AI Assistant{% endif %}">
+    <span class="ai-bot-core">
+      <span class="ai-bot-wing ai-bot-wing-left"></span>
+      <span class="ai-bot-wing ai-bot-wing-right"></span>
+      <span class="ai-bot-head">
+        <span class="ai-bot-eye ai-bot-eye-left"><span class="ai-bot-pupil"></span></span>
+        <span class="ai-bot-eye ai-bot-eye-right"><span class="ai-bot-pupil"></span></span>
+        <span class="ai-bot-visor-gloss"></span>
+      </span>
+      <span class="ai-bot-body-mark"></span>
+      <span class="ai-bot-juggle-ball" aria-hidden="true"></span>
+    </span>
+  </button>
+
+  <section id="ai-bot-panel" class="ai-bot-panel" hidden>
+    <header class="ai-bot-panel-head">
+      <div class="ai-bot-panel-title"><i class="fa fa-robot"></i> {% if lang == 'ar' %}مساعد DroneSec{% elif lang == 'fr' %}Assistant DroneSec{% else %}DroneSec Assistant{% endif %}</div>
+      <button id="ai-bot-close" class="ai-bot-close" type="button" aria-label="close"><i class="fa fa-xmark"></i></button>
+    </header>
+    <div id="ai-bot-messages" class="ai-bot-messages">
+      <div class="ai-bot-msg ai-bot-msg-bot">{% if lang == 'ar' %}اهلا! تكلم معي بشكل عادي، وانا سأفكر معك خطوة بخطوة لنوصل لقرار مناسب.{% elif lang == 'fr' %}Salut ! Parlez-moi naturellement et je vais reflechir avec vous etape par etape.{% else %}Hey, talk to me normally and I will think through your situation with you step by step.{% endif %}</div>
+    </div>
+    <form id="ai-bot-form" class="ai-bot-form">
+      <input id="ai-bot-input" class="ai-bot-input" maxlength="500" placeholder="{% if lang == 'ar' %}اكتب سؤالك...{% elif lang == 'fr' %}Ecrivez votre question...{% else %}Ask something...{% endif %}" />
+      <button id="ai-bot-send" class="ai-bot-send" type="submit"><i class="fa fa-paper-plane"></i></button>
+    </form>
+  </section>
+</div>
+{% endwith %}
+
+{% else %}
+  {% block auth_content %}{% endblock %}
+{% endif %}
+
+<script src="{% static 'js/main.js' %}?v=15"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

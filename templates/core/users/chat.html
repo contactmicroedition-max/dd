@@ -1,0 +1,1902 @@
+{% extends 'base.html' %}
+{% block title %}{% if lang == 'ar' %}المحادثة{% elif lang == 'fr' %}Discussion{% else %}Chat{% endif %}{% endblock %}
+{% block page_title %}
+<i class="fa fa-comments"></i> {% if lang == 'ar' %}محادثة الفريق{% elif lang == 'fr' %}Messagerie d'equipe{% else %}Team Chat{% endif %}
+{% endblock %}
+
+{% block extra_head %}
+<style>
+  .chat-layout { display: grid; grid-template-columns: 320px 1fr; gap: 16px; height: calc(100vh - 170px); min-height: 560px; }
+  .chat-card { background: var(--card-bg, rgba(15, 23, 42, .78)); border: 1px solid var(--card-border, rgba(148, 163, 184, .2)); border-radius: 16px; overflow: hidden; }
+  .chat-sidebar { display: flex; flex-direction: column; }
+  .chat-sidebar-head { padding: 14px 16px; border-bottom: 1px solid var(--card-border, rgba(148,163,184,.2)); }
+  .chat-sidebar-head h3 { margin: 0; font-size: 16px; }
+  .chat-peers { overflow-y: auto; }
+  .chat-peer { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-bottom: 1px solid rgba(148,163,184,.08); text-decoration: none; color: inherit; transition: background .2s ease; }
+  .chat-peer:hover { background: rgba(56,189,248,.08); }
+  .chat-peer.active { background: rgba(56,189,248,.14); border-inline-start: 3px solid #38bdf8; }
+  .chat-avatar-wrap { position: relative; width: 38px; height: 38px; flex: 0 0 38px; }
+  .chat-avatar { width: 38px; height: 38px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; background: rgba(56,189,248,.15); color: #7dd3fc; font-weight: 700; flex: 0 0 38px; overflow: hidden; }
+  .chat-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .chat-presence-dot {
+    position: absolute;
+    right: -1px;
+    bottom: -1px;
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: #22c55e;
+    border: 2px solid rgba(10, 22, 40, 0.92);
+    box-shadow: 0 0 8px rgba(34, 197, 94, 0.7);
+  }
+  .chat-peer-meta { min-width: 0; flex: 1; }
+  .chat-peer-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .chat-peer-role { font-size: 12px; color: var(--text-muted, #94a3b8); }
+  .chat-unread { background: #ef4444; color: white; border-radius: 999px; font-size: 11px; padding: 1px 8px; min-width: 20px; text-align: center; }
+
+  .chat-main { display: flex; flex-direction: column; }
+  .chat-main-head { padding: 12px 16px; border-bottom: 1px solid var(--card-border, rgba(148,163,184,.2)); display: flex; align-items: center; gap: 10px; }
+  .chat-main-head-body { min-width: 0; flex: 1; }
+  .chat-main-head strong { display: block; }
+  .chat-main-head span { font-size: 12px; color: var(--text-muted, #94a3b8); }
+  .chat-actions-bar { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+
+  .chat-stream {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    background: linear-gradient(180deg, rgba(2,6,23,.35) 0%, rgba(15,23,42,.15) 100%);
+  }
+  .chat-empty { color: var(--text-muted, #94a3b8); text-align: center; margin-top: 40px; }
+  .chat-msg {
+    width: fit-content;
+    max-width: min(72%, 620px);
+    padding: 8px 10px;
+    border-radius: 10px;
+    line-height: 1.45;
+    font-size: 14px;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .chat-msg.them { background: rgba(71, 85, 105, .35); border: 1px solid rgba(148,163,184,.25); }
+  .chat-msg.mine { margin-left: auto; background: rgba(14, 116, 144, .35); border: 1px solid rgba(56,189,248,.35); }
+  .chat-msg-main { word-break: break-word; }
+  .chat-broadcast-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .02em;
+    color: #fcd34d;
+    background: rgba(250, 204, 21, .14);
+    border: 1px solid rgba(250, 204, 21, .35);
+    border-radius: 999px;
+    width: fit-content;
+    padding: 3px 8px;
+  }
+  .chat-msg-meta { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .chat-msg-time { font-size: 11px; color: var(--text-muted, #94a3b8); }
+  .chat-last-status {
+    align-self: flex-end;
+    font-size: 11px;
+    color: var(--text-muted, #94a3b8);
+    margin-top: -2px;
+    margin-right: 6px;
+    margin-bottom: 2px;
+  }
+  .chat-msg-actions { display: flex; align-items: center; gap: 4px; opacity: 0; transition: opacity .2s ease; }
+  .chat-msg:hover .chat-msg-actions { opacity: 1; }
+
+  .msg-action-btn {
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    border: 1px solid rgba(148, 163, 184, .35);
+    background: rgba(2, 6, 23, .35);
+    color: #cbd5e1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    cursor: pointer;
+  }
+  .msg-action-btn:hover { border-color: #38bdf8; color: #7dd3fc; }
+
+  .chat-reply-block {
+    border-inline-start: 3px solid rgba(56, 189, 248, .55);
+    background: rgba(15, 23, 42, .35);
+    border-radius: 8px;
+    padding: 6px 8px;
+  }
+  .chat-reply-name { font-size: 11px; font-weight: 700; color: #7dd3fc; margin-bottom: 2px; }
+  .chat-reply-text {
+    font-size: 12px;
+    color: #cbd5e1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .chat-reactions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .chat-reaction-chip {
+    border: 1px solid rgba(148, 163, 184, .35);
+    background: rgba(15, 23, 42, .48);
+    color: #e2e8f0;
+    border-radius: 999px;
+    padding: 2px 8px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .chat-reaction-chip.mine {
+    border-color: rgba(56, 189, 248, .6);
+    background: rgba(56, 189, 248, .18);
+    color: #7dd3fc;
+  }
+
+  .msg-react-picker {
+    display: none;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 4px;
+    margin-top: 2px;
+    background: rgba(2, 6, 23, .5);
+    border: 1px solid rgba(148, 163, 184, .28);
+    border-radius: 10px;
+    padding: 6px;
+  }
+  .chat-msg.react-open .msg-react-picker { display: grid; }
+  .react-emoji-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    background: transparent;
+    cursor: pointer;
+    font-size: 16px;
+  }
+  .react-emoji-btn:hover { border-color: rgba(56, 189, 248, .4); background: rgba(56, 189, 248, .1); }
+
+  .chat-compose { border-top: 1px solid var(--card-border, rgba(148,163,184,.2)); padding: 12px; }
+  .chat-reply-compose {
+    display: none;
+    margin-bottom: 8px;
+    border: 1px solid rgba(56, 189, 248, .25);
+    background: rgba(56, 189, 248, .08);
+    border-radius: 10px;
+    padding: 8px 10px;
+  }
+  .chat-reply-compose.open { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .chat-reply-compose-info { min-width: 0; }
+  .chat-reply-compose-name { font-size: 11px; font-weight: 700; color: #7dd3fc; }
+  .chat-reply-compose-text {
+    font-size: 12px;
+    color: #cbd5e1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 520px;
+  }
+
+  .chat-compose form { display: flex; gap: 10px; align-items: stretch; }
+  .chat-compose textarea { resize: none; min-height: 44px; height: 44px; max-height: 130px; display: block; }
+  .chat-compose-main { flex: 1; display: flex; }
+  .chat-compose-main .form-input { height: 100%; }
+  .chat-compose-tools { display: flex; align-items: stretch; gap: 6px; position: relative; }
+  .chat-compose-tools .btn {
+    height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .chat-compose .btn { min-width: 116px; }
+
+  .emoji-toggle-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    border: 1px solid rgba(148, 163, 184, .35);
+    background: rgba(15, 23, 42, .45);
+    color: #e2e8f0;
+    cursor: pointer;
+  }
+  .emoji-toggle-btn:hover { border-color: #38bdf8; color: #7dd3fc; }
+  .emoji-picker {
+    display: none;
+    position: absolute;
+    bottom: 56px;
+    right: 0;
+    width: 280px;
+    border-radius: 12px;
+    border: 1px solid rgba(148, 163, 184, .28);
+    background: rgba(2, 6, 23, .95);
+    padding: 8px;
+    box-shadow: 0 12px 24px rgba(0, 0, 0, .35);
+    z-index: 4;
+  }
+  .emoji-picker.open { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; }
+  .emoji-picker button {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    background: transparent;
+    font-size: 18px;
+    cursor: pointer;
+  }
+  .emoji-picker button:hover { border-color: rgba(56, 189, 248, .45); background: rgba(56, 189, 248, .1); }
+
+  .record-toggle-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    border: 1px solid rgba(148, 163, 184, .35);
+    background: rgba(15, 23, 42, .45);
+    color: #e2e8f0;
+    cursor: pointer;
+  }
+  .record-toggle-btn:hover { border-color: #38bdf8; color: #7dd3fc; }
+  .record-toggle-btn.recording {
+    border-color: rgba(239, 68, 68, .55);
+    color: #fca5a5;
+    background: rgba(239, 68, 68, .16);
+  }
+
+  .chat-recording-status {
+    display: none;
+    margin-bottom: 8px;
+    padding: 6px 10px;
+    border-radius: 10px;
+    border: 1px solid rgba(239, 68, 68, .28);
+    background: rgba(239, 68, 68, .1);
+    color: #fecaca;
+    font-size: 12px;
+  }
+  .chat-recording-status.open { display: block; }
+  .chat-recording-status.ready {
+    border-color: rgba(56, 189, 248, .35);
+    background: rgba(56, 189, 248, .1);
+    color: #bae6fd;
+  }
+
+  .chat-voice-wrap {
+    display: flex;
+    flex-direction: column;
+    max-width: 300px;
+  }
+  .ig-voice-pill {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid rgba(148, 163, 184, .26);
+    background: rgba(2, 6, 23, .44);
+    border-radius: 999px;
+    padding: 6px 10px 6px 6px;
+    min-width: 210px;
+  }
+  .chat-msg.mine .ig-voice-pill {
+    border-color: rgba(56, 189, 248, .34);
+    background: rgba(2, 6, 23, .28);
+  }
+  .chat-voice-player {
+    display: none;
+  }
+  .ig-voice-play {
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    border: 1px solid rgba(148, 163, 184, .42);
+    background: rgba(15, 23, 42, .82);
+    color: #e2e8f0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 10px;
+    flex: 0 0 28px;
+  }
+  .ig-voice-play:hover {
+    border-color: rgba(56, 189, 248, .62);
+    color: #7dd3fc;
+  }
+  .ig-voice-play.playing {
+    border-color: rgba(56, 189, 248, .72);
+    color: #7dd3fc;
+    background: rgba(56, 189, 248, .14);
+  }
+  .ig-voice-wave {
+    position: relative;
+    flex: 1;
+    height: 16px;
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  .ig-voice-wave::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 999px;
+    background: repeating-linear-gradient(
+      90deg,
+      rgba(148, 163, 184, .62) 0px,
+      rgba(148, 163, 184, .62) 2px,
+      transparent 2px,
+      transparent 6px
+    );
+    opacity: .55;
+  }
+  .ig-voice-progress {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 0%;
+    border-radius: 999px;
+    background: repeating-linear-gradient(
+      90deg,
+      rgba(56, 189, 248, .95) 0px,
+      rgba(56, 189, 248, .95) 2px,
+      transparent 2px,
+      transparent 6px
+    );
+    opacity: .95;
+    pointer-events: none;
+  }
+  .ig-voice-seek {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+  .ig-voice-time {
+    font-size: 11px;
+    color: #cbd5e1;
+    min-width: 34px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .chat-voice-duration {
+    font-size: 11px;
+    color: var(--text-muted, #94a3b8);
+  }
+
+  .chat-attachment-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 2px;
+  }
+  .chat-attachment-image {
+    display: block;
+    max-width: 320px;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(148, 163, 184, .3);
+    background: rgba(2, 6, 23, .28);
+  }
+  .chat-attachment-image img {
+    width: 100%;
+    display: block;
+    object-fit: cover;
+    max-height: 280px;
+  }
+  .chat-attachment-caption {
+    font-size: 11px;
+    padding: 6px 8px;
+    color: #cbd5e1;
+    border-top: 1px solid rgba(148, 163, 184, .2);
+    word-break: break-all;
+  }
+  .chat-file-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    max-width: 320px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: rgba(2, 6, 23, .36);
+    border: 1px solid rgba(148, 163, 184, .28);
+    color: #dbeafe;
+    text-decoration: none;
+    word-break: break-all;
+  }
+  .chat-file-link i { color: #93c5fd; }
+  .chat-file-link:hover {
+    border-color: rgba(56, 189, 248, .45);
+    background: rgba(56, 189, 248, .1);
+  }
+
+  .attach-toggle-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    border: 1px solid rgba(148, 163, 184, .35);
+    background: rgba(15, 23, 42, .45);
+    color: #e2e8f0;
+    cursor: pointer;
+  }
+  .attach-toggle-btn:hover { border-color: #38bdf8; color: #7dd3fc; }
+  .attach-toggle-btn.has-file {
+    border-color: rgba(34, 197, 94, .55);
+    color: #86efac;
+    background: rgba(34, 197, 94, .14);
+  }
+
+  .chat-attachment-status {
+    display: none;
+    margin-bottom: 8px;
+    padding: 6px 10px;
+    border-radius: 10px;
+    border: 1px solid rgba(56, 189, 248, .35);
+    background: rgba(56, 189, 248, .1);
+    color: #bae6fd;
+    font-size: 12px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .chat-attachment-status.open { display: flex; }
+  .chat-attachment-status.error {
+    border-color: rgba(239, 68, 68, .32);
+    background: rgba(239, 68, 68, .12);
+    color: #fecaca;
+  }
+  .chat-attachment-remove {
+    border: 1px solid rgba(148, 163, 184, .35);
+    background: rgba(2, 6, 23, .35);
+    color: #e2e8f0;
+    border-radius: 8px;
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+  }
+  .chat-attachment-remove:hover { border-color: #38bdf8; color: #7dd3fc; }
+
+  .chat-confirm-modal {
+    position: fixed;
+    inset: 0;
+    display: none;
+    place-items: center;
+    z-index: 600;
+    pointer-events: none;
+  }
+  .chat-confirm-modal.open {
+    display: grid;
+    pointer-events: auto;
+  }
+  .chat-confirm-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(2, 6, 23, .66);
+    backdrop-filter: blur(2px);
+    z-index: 0;
+  }
+  .chat-confirm-card {
+    position: relative;
+    z-index: 1;
+    width: min(420px, calc(100vw - 28px));
+    border-radius: 14px;
+    border: 1px solid rgba(148, 163, 184, .3);
+    background: rgba(10, 22, 40, .95);
+    box-shadow: 0 20px 36px rgba(0, 0, 0, .4);
+    padding: 16px;
+  }
+  .chat-confirm-text {
+    margin: 0 0 14px;
+    color: #e2e8f0;
+    font-size: 14px;
+    line-height: 1.45;
+  }
+  .chat-confirm-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+  .chat-confirm-btn {
+    border: 1px solid rgba(148, 163, 184, .35);
+    border-radius: 10px;
+    padding: 8px 12px;
+    background: rgba(2, 6, 23, .4);
+    color: #e2e8f0;
+    cursor: pointer;
+  }
+  .chat-confirm-btn:hover { border-color: rgba(56, 189, 248, .5); }
+  .chat-confirm-btn.primary {
+    border-color: rgba(56, 189, 248, .55);
+    background: rgba(56, 189, 248, .18);
+    color: #7dd3fc;
+  }
+
+  .chat-broadcast-card { width: min(560px, calc(100vw - 28px)); }
+  .chat-broadcast-title {
+    margin: 0 0 10px;
+    font-size: 16px;
+    color: #e2e8f0;
+  }
+  .chat-broadcast-form { display: grid; gap: 10px; }
+  .chat-broadcast-label {
+    font-size: 12px;
+    color: var(--text-muted, #94a3b8);
+    margin-bottom: 4px;
+    display: inline-block;
+  }
+  .chat-broadcast-form select,
+  .chat-broadcast-form textarea,
+  .chat-broadcast-form input {
+    width: 100%;
+  }
+  .chat-broadcast-form textarea {
+    min-height: 110px;
+    resize: vertical;
+  }
+  .chat-broadcast-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 2px;
+  }
+
+  @media (max-width: 980px) {
+    .chat-layout { grid-template-columns: 1fr; height: auto; min-height: 0; }
+    .chat-sidebar { max-height: 320px; }
+    .chat-main { min-height: 62vh; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="chat-layout">
+  <aside class="chat-card chat-sidebar">
+    <div class="chat-sidebar-head">
+      <h3>{% if lang == 'ar' %}اعضاء الفريق{% elif lang == 'fr' %}Membres de l'equipe{% else %}Team Members{% endif %}</h3>
+    </div>
+    <div class="chat-peers">
+      {% for peer in peers %}
+        <a href="{% url 'core:chat_with_user' peer.id %}" class="chat-peer {% if selected_user and selected_user.id == peer.id %}active{% endif %}" data-peer-id="{{ peer.id }}" data-latest-message-id="{{ peer.chat_latest_message_id }}">
+          <div class="chat-avatar-wrap">
+            <div class="chat-avatar">
+              {% if peer.avatar %}
+                <img src="{{ peer.avatar.url }}" alt="avatar" />
+              {% else %}
+                {{ peer.first_name|first|upper }}{{ peer.last_name|first|upper }}
+              {% endif %}
+            </div>
+            {% if peer.is_online %}
+              <span class="chat-presence-dot" title="Online"></span>
+            {% endif %}
+          </div>
+          <div class="chat-peer-meta">
+            <div class="chat-peer-name">{{ peer.get_full_name|default:peer.username }}</div>
+            <div class="chat-peer-role">@{{ peer.username }}</div>
+          </div>
+          <span class="chat-unread" {% if not peer.chat_unread_count %}style="display:none"{% endif %}>{{ peer.chat_unread_count }}</span>
+        </a>
+      {% empty %}
+        <div class="chat-empty">{% if lang == 'ar' %}لا يوجد مستخدمون متاحون للمحادثة{% elif lang == 'fr' %}Aucun utilisateur disponible pour discuter{% else %}No users available for chat{% endif %}</div>
+      {% endfor %}
+    </div>
+  </aside>
+
+  <section class="chat-card chat-main" data-chat-container {% if selected_user %}data-user-id="{{ selected_user.id }}" data-messages-url="{% url 'core:chat_messages_api' selected_user.id %}" data-send-url="{% url 'core:chat_send_api' selected_user.id %}"{% endif %}>
+    {% if selected_user %}
+      <div class="chat-main-head">
+        <div class="chat-avatar-wrap">
+          <div class="chat-avatar">
+            {% if selected_user.avatar %}
+              <img src="{{ selected_user.avatar.url }}" alt="avatar" />
+            {% else %}
+              {{ selected_user.first_name|first|upper }}{{ selected_user.last_name|first|upper }}
+            {% endif %}
+          </div>
+          {% if selected_user.is_online %}
+            <span class="chat-presence-dot" title="Online"></span>
+          {% endif %}
+        </div>
+        <div class="chat-main-head-body">
+          <strong>{{ selected_user.get_full_name|default:selected_user.username }}</strong>
+          <span>@{{ selected_user.username }}</span>
+        </div>
+        <div class="chat-actions-bar">
+          {% if request.user.is_admin %}
+            <button type="button" id="broadcast-btn" class="btn btn-outline btn-sm"><i class="fa fa-bullhorn"></i> {% if lang == 'ar' %}ارسال للجميع{% elif lang == 'fr' %}Diffuser a tous{% else %}Broadcast{% endif %}</button>
+          {% endif %}
+          <button type="button" id="delete-conversation-btn" class="btn btn-outline btn-sm"><i class="fa fa-trash"></i> {% if lang == 'ar' %}حذف المحادثة{% elif lang == 'fr' %}Supprimer la conversation{% else %}Delete Conversation{% endif %}</button>
+        </div>
+      </div>
+
+      <div class="chat-stream" id="chat-stream" data-last-id="0"></div>
+      {{ initial_messages|json_script:"initial-chat-messages-data" }}
+      {{ broadcast_departments|json_script:"broadcast-departments-data" }}
+
+      <div class="chat-compose">
+        <div id="reply-compose" class="chat-reply-compose">
+          <div class="chat-reply-compose-info">
+            <div class="chat-reply-compose-name" id="reply-compose-name"></div>
+            <div class="chat-reply-compose-text" id="reply-compose-text"></div>
+          </div>
+          <button type="button" id="reply-cancel-btn" class="msg-action-btn" title="Cancel"><i class="fa fa-xmark"></i></button>
+        </div>
+
+        <div id="recording-status" class="chat-recording-status"></div>
+        <div id="attachment-status" class="chat-attachment-status">
+          <span id="attachment-status-text"></span>
+          <button type="button" id="attachment-remove" class="chat-attachment-remove" title="Remove"><i class="fa fa-xmark"></i></button>
+        </div>
+
+        <form id="chat-form">
+          {% csrf_token %}
+          <input id="attachment-input" type="file" hidden />
+          <div class="chat-compose-main">
+            <textarea id="chat-message" class="form-input" rows="1" maxlength="1000" placeholder="{% if lang == 'ar' %}اكتب رسالتك...{% elif lang == 'fr' %}Ecrivez votre message...{% else %}Type your message...{% endif %}"></textarea>
+          </div>
+          <div class="chat-compose-tools">
+            <button type="button" id="attachment-toggle" class="attach-toggle-btn" title="{% if lang == 'ar' %}ارفاق صورة او ملف{% elif lang == 'fr' %}Joindre une image ou un fichier{% else %}Attach image or file{% endif %}"><i class="fa fa-paperclip"></i></button>
+            <button type="button" id="record-toggle" class="record-toggle-btn" title="{% if lang == 'ar' %}تسجيل صوتي{% elif lang == 'fr' %}Enregistrer la voix{% else %}Record voice{% endif %}"><i class="fa fa-microphone"></i></button>
+            <button type="button" id="emoji-toggle" class="emoji-toggle-btn" title="Emoji"><i class="fa fa-face-smile"></i></button>
+            <div id="emoji-picker" class="emoji-picker"></div>
+            <button type="submit" class="btn btn-primary"><i class="fa fa-paper-plane"></i> {% if lang == 'ar' %}ارسال{% elif lang == 'fr' %}Envoyer{% else %}Send{% endif %}</button>
+          </div>
+        </form>
+      </div>
+    {% else %}
+      <div class="chat-empty" style="margin: auto;">{% if lang == 'ar' %}اختر عضوا من القائمة لبدء المحادثة{% elif lang == 'fr' %}Selectionnez un membre pour commencer{% else %}Select a member to start chatting{% endif %}</div>
+    {% endif %}
+  </section>
+</div>
+
+<div id="chat-confirm-modal" class="chat-confirm-modal" aria-hidden="true">
+  <div class="chat-confirm-backdrop" data-confirm-close="1"></div>
+  <div class="chat-confirm-card" role="dialog" aria-modal="true" aria-labelledby="chat-confirm-text">
+    <p id="chat-confirm-text" class="chat-confirm-text"></p>
+    <div class="chat-confirm-actions">
+      <button type="button" id="chat-confirm-cancel" class="chat-confirm-btn">{% if lang == 'ar' %}الغاء{% elif lang == 'fr' %}Annuler{% else %}Cancel{% endif %}</button>
+      <button type="button" id="chat-confirm-ok" class="chat-confirm-btn primary">{% if lang == 'ar' %}تاكيد{% elif lang == 'fr' %}Confirmer{% else %}Confirm{% endif %}</button>
+    </div>
+  </div>
+</div>
+
+<div id="chat-broadcast-modal" class="chat-confirm-modal" aria-hidden="true">
+  <div class="chat-confirm-backdrop" data-broadcast-close="1"></div>
+  <div class="chat-confirm-card chat-broadcast-card" role="dialog" aria-modal="true" aria-labelledby="chat-broadcast-title">
+    <h4 id="chat-broadcast-title" class="chat-broadcast-title">{% if lang == 'ar' %}ارسال رسالة جماعية{% elif lang == 'fr' %}Envoyer une diffusion{% else %}Send Broadcast Message{% endif %}</h4>
+    <form id="chat-broadcast-form" class="chat-broadcast-form">
+      <div>
+        <label class="chat-broadcast-label" for="broadcast-audience">{% if lang == 'ar' %}الاستهداف{% elif lang == 'fr' %}Audience{% else %}Audience{% endif %}</label>
+        <select id="broadcast-audience" class="form-input">
+          <option value="all">{% if lang == 'ar' %}كل المستخدمين{% elif lang == 'fr' %}Tous les utilisateurs{% else %}All users{% endif %}</option>
+          <option value="agents">{% if lang == 'ar' %}الوكلاء فقط{% elif lang == 'fr' %}Agents uniquement{% else %}Agents only{% endif %}</option>
+          <option value="admins">{% if lang == 'ar' %}المشرفون فقط{% elif lang == 'fr' %}Admins uniquement{% else %}Admins only{% endif %}</option>
+          <option value="department">{% if lang == 'ar' %}قسم محدد{% elif lang == 'fr' %}Departement specifique{% else %}Specific department{% endif %}</option>
+        </select>
+      </div>
+
+      <div id="broadcast-department-wrap" style="display:none">
+        <label class="chat-broadcast-label" for="broadcast-department">{% if lang == 'ar' %}اسم القسم{% elif lang == 'fr' %}Nom du departement{% else %}Department name{% endif %}</label>
+        <input id="broadcast-department" class="form-input" list="broadcast-departments-list" maxlength="100" placeholder="{% if lang == 'ar' %}مثال: Security{% elif lang == 'fr' %}Exemple : Securite{% else %}Example: Security{% endif %}" />
+        <datalist id="broadcast-departments-list">
+          {% for department in broadcast_departments %}
+            <option value="{{ department }}"></option>
+          {% endfor %}
+        </datalist>
+      </div>
+
+      <div>
+        <label class="chat-broadcast-label" for="broadcast-message">{% if lang == 'ar' %}نص الرسالة{% elif lang == 'fr' %}Message{% else %}Message{% endif %}</label>
+        <textarea id="broadcast-message" class="form-input" maxlength="1000" placeholder="{% if lang == 'ar' %}اكتب الرسالة التي ستصل للجميع...{% elif lang == 'fr' %}Ecrivez le message qui sera envoye...{% else %}Write the message to broadcast...{% endif %}"></textarea>
+      </div>
+
+      <div class="chat-broadcast-actions">
+        <button type="button" id="chat-broadcast-cancel" class="chat-confirm-btn">{% if lang == 'ar' %}الغاء{% elif lang == 'fr' %}Annuler{% else %}Cancel{% endif %}</button>
+        <button type="submit" id="chat-broadcast-send" class="chat-confirm-btn primary">{% if lang == 'ar' %}ارسال{% elif lang == 'fr' %}Envoyer{% else %}Send{% endif %}</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  (function () {
+    const chatBox = document.querySelector('[data-chat-container]');
+    if (!chatBox || !chatBox.dataset.userId) return;
+
+    const stream = document.getElementById('chat-stream');
+    const peersContainer = document.querySelector('.chat-peers');
+    const form = document.getElementById('chat-form');
+    const input = document.getElementById('chat-message');
+    const messagesUrl = chatBox.dataset.messagesUrl;
+    const sendUrl = chatBox.dataset.sendUrl;
+    const reactUrlTemplate = '{% url "core:chat_react_api" 0 %}';
+    const deleteMessageUrlTemplate = '{% url "core:chat_delete_message_api" 0 %}';
+    const deleteConversationUrl = '{% url "core:chat_delete_conversation_api" selected_user.id %}';
+    const broadcastUrl = '{% url "core:chat_broadcast_api" %}';
+    const peerUserId = Number(chatBox.dataset.userId || 0);
+    const replyCompose = document.getElementById('reply-compose');
+    const replyComposeName = document.getElementById('reply-compose-name');
+    const replyComposeText = document.getElementById('reply-compose-text');
+    const replyCancelBtn = document.getElementById('reply-cancel-btn');
+    const deleteConversationBtn = document.getElementById('delete-conversation-btn');
+    const broadcastBtn = document.getElementById('broadcast-btn');
+    const broadcastModal = document.getElementById('chat-broadcast-modal');
+    const broadcastForm = document.getElementById('chat-broadcast-form');
+    const broadcastAudience = document.getElementById('broadcast-audience');
+    const broadcastDepartmentWrap = document.getElementById('broadcast-department-wrap');
+    const broadcastDepartmentInput = document.getElementById('broadcast-department');
+    const broadcastMessageInput = document.getElementById('broadcast-message');
+    const broadcastCancelBtn = document.getElementById('chat-broadcast-cancel');
+    const broadcastSendBtn = document.getElementById('chat-broadcast-send');
+    const attachmentToggleBtn = document.getElementById('attachment-toggle');
+    const attachmentInput = document.getElementById('attachment-input');
+    const attachmentStatus = document.getElementById('attachment-status');
+    const attachmentStatusText = document.getElementById('attachment-status-text');
+    const attachmentRemoveBtn = document.getElementById('attachment-remove');
+    const confirmModal = document.getElementById('chat-confirm-modal');
+    const confirmText = document.getElementById('chat-confirm-text');
+    const confirmCancelBtn = document.getElementById('chat-confirm-cancel');
+    const confirmOkBtn = document.getElementById('chat-confirm-ok');
+    const recordToggleBtn = document.getElementById('record-toggle');
+    const recordingStatus = document.getElementById('recording-status');
+    const emojiToggle = document.getElementById('emoji-toggle');
+    const emojiPicker = document.getElementById('emoji-picker');
+    const csrftoken = document.querySelector('input[name="csrfmiddlewaretoken"]')?.value;
+    const initialMessages = JSON.parse(document.getElementById('initial-chat-messages-data')?.textContent || '[]');
+    const broadcastDepartments = JSON.parse(document.getElementById('broadcast-departments-data')?.textContent || '[]');
+
+    const text = {
+      deleteMessageSelf: "{% if lang == 'ar' %}هل تريد حذف هذه الرسالة لك فقط؟{% elif lang == 'fr' %}Supprimer ce message pour vous uniquement ?{% else %}Delete this message for yourself only?{% endif %}",
+      deleteMessageBothChoice: "{% if lang == 'ar' %}اضغط OK للحذف للجميع، او Cancel للحذف لك فقط.{% elif lang == 'fr' %}OK: supprimer pour tout le monde, Cancel: supprimer pour vous uniquement.{% else %}Press OK to delete for everyone, or Cancel to delete for yourself only.{% endif %}",
+      deleteMessageConfirm: "{% if lang == 'ar' %}هل تريد حذف هذه الرسالة؟{% elif lang == 'fr' %}Voulez-vous supprimer ce message ?{% else %}Do you want to delete this message?{% endif %}",
+      deleteConversationConfirm: "{% if lang == 'ar' %}هل تريد حذف المحادثة؟{% elif lang == 'fr' %}Supprimer la conversation ?{% else %}Delete this conversation?{% endif %}",
+      deleteConversationBothChoice: "{% if lang == 'ar' %}اضغط OK للحذف للجميع حيثما امكن، او Cancel للحذف لك فقط.{% elif lang == 'fr' %}OK: supprimer pour tout le monde quand possible, Cancel: supprimer pour vous uniquement.{% else %}Press OK to delete for both where possible, or Cancel to delete only for yourself.{% endif %}",
+      emptyConversation: "{% if lang == 'ar' %}لا توجد رسائل في هذه المحادثة{% elif lang == 'fr' %}Aucun message dans cette conversation{% else %}No messages in this conversation{% endif %}",
+      replyPrefix: "{% if lang == 'ar' %}الرد على{% elif lang == 'fr' %}Repondre a{% else %}Reply to{% endif %}",
+      voiceMessageLabel: "{% if lang == 'ar' %}رسالة صوتية{% elif lang == 'fr' %}Message vocal{% else %}Voice message{% endif %}",
+      playVoice: "{% if lang == 'ar' %}تشغيل{% elif lang == 'fr' %}Lire{% else %}Play{% endif %}",
+      pauseVoice: "{% if lang == 'ar' %}ايقاف{% elif lang == 'fr' %}Pause{% else %}Pause{% endif %}",
+      imageAttachmentLabel: "{% if lang == 'ar' %}صورة مرفقة{% elif lang == 'fr' %}Image jointe{% else %}Image attachment{% endif %}",
+      fileAttachmentLabel: "{% if lang == 'ar' %}ملف مرفق{% elif lang == 'fr' %}Fichier joint{% else %}File attachment{% endif %}",
+      sentStatus: "{% if lang == 'ar' %}تم الارسال{% elif lang == 'fr' %}Envoye{% else %}Sent{% endif %}",
+      seenStatus: "{% if lang == 'ar' %}تمت المشاهدة{% elif lang == 'fr' %}Vu{% else %}Seen{% endif %}",
+      recordingStart: "{% if lang == 'ar' %}بدء التسجيل... اضغط الميكروفون مرة اخرى للايقاف{% elif lang == 'fr' %}Enregistrement... appuyez encore pour arreter{% else %}Recording... press the microphone again to stop{% endif %}",
+      recordingReadyPrefix: "{% if lang == 'ar' %}رسالة صوتية جاهزة{% elif lang == 'fr' %}Message vocal pret{% else %}Voice message ready{% endif %}",
+      recordingRemoved: "{% if lang == 'ar' %}تمت ازالة الرسالة الصوتية{% elif lang == 'fr' %}Message vocal retire{% else %}Voice message removed{% endif %}",
+      attachmentReadyPrefix: "{% if lang == 'ar' %}ملف جاهز{% elif lang == 'fr' %}Fichier pret{% else %}Attachment ready{% endif %}",
+      attachmentRemoved: "{% if lang == 'ar' %}تمت ازالة الملف المرفق{% elif lang == 'fr' %}Piece jointe retiree{% else %}Attachment removed{% endif %}",
+      attachmentTooLarge: "{% if lang == 'ar' %}الملف كبير جدا. الحد الاقصى 25MB{% elif lang == 'fr' %}Fichier trop volumineux. Limite 25MB{% else %}File is too large. Max size is 25MB{% endif %}",
+      recordNotSupported: "{% if lang == 'ar' %}المتصفح لا يدعم التسجيل الصوتي{% elif lang == 'fr' %}Le navigateur ne prend pas en charge l'enregistrement vocal{% else %}Your browser does not support voice recording{% endif %}",
+      recordPermissionError: "{% if lang == 'ar' %}تعذر الوصول الى الميكروفون{% elif lang == 'fr' %}Impossible d'acceder au microphone{% else %}Could not access your microphone{% endif %}",
+      sendVoiceError: "{% if lang == 'ar' %}فشل ارسال الرسالة الصوتية{% elif lang == 'fr' %}Echec d'envoi du message vocal{% else %}Failed to send voice message{% endif %}",
+      sendAttachmentError: "{% if lang == 'ar' %}فشل ارسال الملف المرفق{% elif lang == 'fr' %}Echec d'envoi de la piece jointe{% else %}Failed to send attachment{% endif %}",
+      broadcastBadge: "{% if lang == 'ar' %}بث عام{% elif lang == 'fr' %}Diffusion{% else %}Broadcast{% endif %}",
+      broadcastEmpty: "{% if lang == 'ar' %}لا يمكن ارسال رسالة فارغة{% elif lang == 'fr' %}Impossible d'envoyer un message vide{% else %}Cannot send an empty message{% endif %}",
+      broadcastDepartmentRequired: "{% if lang == 'ar' %}يرجى ادخال اسم القسم{% elif lang == 'fr' %}Veuillez saisir le nom du departement{% else %}Please enter a department name{% endif %}",
+      broadcastSuccessPrefix: "{% if lang == 'ar' %}تم ارسال الرسالة الى{% elif lang == 'fr' %}Message diffuse a{% else %}Broadcast sent to{% endif %}",
+      broadcastSuccessSuffix: "{% if lang == 'ar' %}مستخدم{% elif lang == 'fr' %}utilisateurs{% else %}users{% endif %}",
+      broadcastLabelAll: "{% if lang == 'ar' %}كل المستخدمين{% elif lang == 'fr' %}tous les utilisateurs{% else %}all users{% endif %}",
+      broadcastLabelAgents: "{% if lang == 'ar' %}الوكلاء فقط{% elif lang == 'fr' %}agents uniquement{% else %}agents only{% endif %}",
+      broadcastLabelAdmins: "{% if lang == 'ar' %}المشرفون فقط{% elif lang == 'fr' %}admins uniquement{% else %}admins only{% endif %}",
+      broadcastLabelDepartmentPrefix: "{% if lang == 'ar' %}قسم{% elif lang == 'fr' %}departement{% else %}department{% endif %}",
+      broadcastError: "{% if lang == 'ar' %}فشل ارسال رسالة البث{% elif lang == 'fr' %}Echec de l'envoi de la diffusion{% else %}Failed to send broadcast{% endif %}",
+    };
+
+    const quickReactionEmojis = ['👍', '❤️', '😂', '🔥', '😮', '😢', '🙏', '✅'];
+    const pickerEmojis = ['😀','😁','😂','🤣','😊','😍','😘','😎','🤔','😮','😢','😭','😡','👍','👎','👏','🙏','🔥','💯','✅','🚀','🎯','❤️','💙','💚','💛','💜','🫡','🤝','🙌','🎉','🤖'];
+
+    let replyTarget = null;
+    const messageStore = new Map();
+    let mediaRecorder = null;
+    let isRecording = false;
+    let recordingChunks = [];
+    let recordedBlob = null;
+    let recordedDurationSeconds = 0;
+    let recordingStartedAt = 0;
+    let selectedAttachment = null;
+    let confirmResolver = null;
+
+    function audienceLabel(audience, department) {
+      if (audience === 'agents') return text.broadcastLabelAgents;
+      if (audience === 'admins') return text.broadcastLabelAdmins;
+      if (audience === 'department') {
+        return text.broadcastLabelDepartmentPrefix + ' ' + (department || '');
+      }
+      return text.broadcastLabelAll;
+    }
+
+    function escapeHtml(value) {
+      return (value || '').toString()
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function truncate(textValue, maxLen) {
+      const raw = (textValue || '').toString();
+      if (raw.length <= maxLen) return raw;
+      return raw.slice(0, maxLen - 1) + '…';
+    }
+
+    function apiUrlFromTemplate(template, id) {
+      return template.replace('/0/', '/' + String(id) + '/');
+    }
+
+    function ensureEmptyState() {
+      stream.querySelectorAll('.chat-last-status').forEach(el => el.remove());
+      const hasMessages = stream.querySelector('.chat-msg');
+      let empty = document.getElementById('chat-empty');
+      if (hasMessages) {
+        if (empty) empty.remove();
+        return;
+      }
+      if (!empty) {
+        empty = document.createElement('div');
+        empty.id = 'chat-empty';
+        empty.className = 'chat-empty';
+        empty.textContent = text.emptyConversation;
+        stream.appendChild(empty);
+      }
+    }
+
+    function isUserNearBottom(thresholdPx) {
+      const threshold = Number(thresholdPx || 80);
+      const distance = stream.scrollHeight - stream.scrollTop - stream.clientHeight;
+      return distance <= threshold;
+    }
+
+    function requestConfirm(messageText) {
+      if (!confirmModal || !confirmText) {
+        return Promise.resolve(window.confirm(messageText));
+      }
+
+      if (confirmResolver) {
+        const previous = confirmResolver;
+        confirmResolver = null;
+        previous(false);
+      }
+
+      confirmText.textContent = messageText || '';
+      confirmModal.classList.add('open');
+      confirmModal.setAttribute('aria-hidden', 'false');
+
+      return new Promise(resolve => {
+        confirmResolver = resolve;
+      });
+    }
+
+    function resolveConfirm(result) {
+      if (confirmModal) {
+        confirmModal.classList.remove('open');
+        confirmModal.setAttribute('aria-hidden', 'true');
+      }
+      if (confirmResolver) {
+        const cb = confirmResolver;
+        confirmResolver = null;
+        cb(!!result);
+      }
+    }
+
+    function toggleBroadcastDepartmentField() {
+      if (!broadcastAudience || !broadcastDepartmentWrap) {
+        return;
+      }
+      const needsDepartment = broadcastAudience.value === 'department';
+      broadcastDepartmentWrap.style.display = needsDepartment ? 'block' : 'none';
+      if (!needsDepartment && broadcastDepartmentInput) {
+        broadcastDepartmentInput.value = '';
+      }
+    }
+
+    function openBroadcastModal() {
+      if (!broadcastModal) {
+        return;
+      }
+      if (broadcastAudience) {
+        broadcastAudience.value = 'all';
+      }
+      if (broadcastDepartmentInput) {
+        broadcastDepartmentInput.value = '';
+      }
+      toggleBroadcastDepartmentField();
+      broadcastModal.classList.add('open');
+      broadcastModal.setAttribute('aria-hidden', 'false');
+      setTimeout(function () {
+        if (broadcastMessageInput) {
+          broadcastMessageInput.focus();
+        }
+      }, 0);
+    }
+
+    function closeBroadcastModal(resetMessage) {
+      if (!broadcastModal) {
+        return;
+      }
+      broadcastModal.classList.remove('open');
+      broadcastModal.setAttribute('aria-hidden', 'true');
+      if (resetMessage && broadcastMessageInput) {
+        broadcastMessageInput.value = '';
+      }
+      if (broadcastDepartmentInput) {
+        broadcastDepartmentInput.value = '';
+      }
+      toggleBroadcastDepartmentField();
+    }
+
+    function setReplyTarget(msg) {
+      replyTarget = {
+        id: msg.id,
+        sender_name: msg.sender_name || '',
+        message: msg.message_preview || msg.message || (msg.has_attachment ? (msg.attachment_is_image ? text.imageAttachmentLabel : text.fileAttachmentLabel) : (msg.has_voice ? text.voiceMessageLabel : '')),
+      };
+      replyComposeName.textContent = text.replyPrefix + ' ' + replyTarget.sender_name;
+      replyComposeText.textContent = truncate(replyTarget.message, 110);
+      replyCompose.classList.add('open');
+      input.focus();
+    }
+
+    function clearReplyTarget() {
+      replyTarget = null;
+      replyCompose.classList.remove('open');
+    }
+
+    function renderReactionChips(msg) {
+      if (!Array.isArray(msg.reactions) || msg.reactions.length === 0) {
+        return '';
+      }
+      return '<div class="chat-reactions">' + msg.reactions.map(r =>
+        '<button type="button" class="chat-reaction-chip ' + (r.mine ? 'mine' : '') + '" data-action="reaction-chip" data-message-id="' + msg.id + '" data-emoji="' + escapeHtml(r.emoji) + '" data-mine="' + (r.mine ? '1' : '0') + '">' +
+        escapeHtml(r.emoji) + ' ' + r.count +
+        '</button>'
+      ).join('') + '</div>';
+    }
+
+    function renderReplyBlock(msg) {
+      if (!msg.reply_to) {
+        return '';
+      }
+      return '<div class="chat-reply-block">' +
+        '<div class="chat-reply-name">' + escapeHtml(msg.reply_to.sender_name || '') + '</div>' +
+        '<div class="chat-reply-text">' + escapeHtml(truncate(msg.reply_to.message || '', 90)) + '</div>' +
+      '</div>';
+    }
+
+    function renderReactPicker(msgId) {
+      return '<div class="msg-react-picker">' + quickReactionEmojis.map(emoji =>
+        '<button type="button" class="react-emoji-btn" data-action="react-emoji" data-message-id="' + msgId + '" data-emoji="' + escapeHtml(emoji) + '">' + escapeHtml(emoji) + '</button>'
+      ).join('') + '</div>';
+    }
+
+    function formatDuration(seconds) {
+      const total = Math.max(0, Number(seconds || 0));
+      const minutes = Math.floor(total / 60);
+      const remainder = total % 60;
+      return String(minutes).padStart(2, '0') + ':' + String(remainder).padStart(2, '0');
+    }
+
+    function formatVoiceClock(seconds) {
+      const total = Math.max(0, Math.round(Number(seconds || 0)));
+      const minutes = Math.floor(total / 60);
+      const remainder = total % 60;
+      return String(minutes) + ':' + String(remainder).padStart(2, '0');
+    }
+
+    function renderVoiceBlock(msg) {
+      if (!msg.has_voice || !msg.voice_url) {
+        return '';
+      }
+      const durationText = formatVoiceClock(msg.voice_duration_seconds || 0);
+      return '<div class="chat-voice-wrap">' +
+        '<div class="ig-voice-pill">' +
+          '<button type="button" class="ig-voice-play" data-action="toggle-voice" data-message-id="' + msg.id + '" title="' + escapeHtml(text.playVoice) + '"><i class="fa fa-play"></i></button>' +
+          '<div class="ig-voice-wave">' +
+            '<div class="ig-voice-progress"></div>' +
+            '<input type="range" min="0" max="100" value="0" class="ig-voice-seek" data-action="voice-seek" data-message-id="' + msg.id + '" />' +
+          '</div>' +
+          '<div class="ig-voice-time">' + escapeHtml(durationText) + '</div>' +
+          '<audio preload="metadata" class="chat-voice-player" src="' + escapeHtml(msg.voice_url) + '"></audio>' +
+        '</div>' +
+      '</div>';
+    }
+
+    function setVoiceButtonState(messageEl, isPlaying) {
+      if (!messageEl) return;
+      const btn = messageEl.querySelector('.ig-voice-play');
+      if (!btn) return;
+      btn.classList.toggle('playing', !!isPlaying);
+      btn.title = isPlaying ? text.pauseVoice : text.playVoice;
+      btn.innerHTML = isPlaying ? '<i class="fa fa-pause"></i>' : '<i class="fa fa-play"></i>';
+    }
+
+    function updateVoiceUI(messageEl) {
+      if (!messageEl) return;
+      const audio = messageEl.querySelector('.chat-voice-player');
+      if (!audio) return;
+
+      const progressEl = messageEl.querySelector('.ig-voice-progress');
+      const seekEl = messageEl.querySelector('.ig-voice-seek');
+      const timeEl = messageEl.querySelector('.ig-voice-time');
+
+      const msgId = Number(messageEl.dataset.msgId || 0);
+      const storedDuration = Number(messageStore.get(msgId)?.voice_duration_seconds || 0);
+      const duration = Number(audio.duration || storedDuration || 0);
+      const current = Number(audio.currentTime || 0);
+      const pct = duration > 0 ? Math.min(100, (current / duration) * 100) : 0;
+
+      if (progressEl) {
+        progressEl.style.width = pct.toFixed(2) + '%';
+      }
+      if (seekEl && document.activeElement !== seekEl) {
+        seekEl.value = String(Math.round(pct));
+      }
+      if (timeEl) {
+        timeEl.textContent = audio.paused
+          ? formatVoiceClock(duration || storedDuration)
+          : formatVoiceClock(Math.max(duration - current, 0));
+      }
+    }
+
+    function toggleVoiceInMessage(messageId) {
+      const messageEl = stream.querySelector('.chat-msg[data-msg-id="' + String(messageId) + '"]');
+      if (!messageEl) return;
+      const audio = messageEl.querySelector('.chat-voice-player');
+      if (!audio) return;
+
+      if (audio.paused) {
+        stream.querySelectorAll('.chat-voice-player').forEach(other => {
+          if (other !== audio && !other.paused) {
+            other.pause();
+            const otherMessage = other.closest('.chat-msg');
+            setVoiceButtonState(otherMessage, false);
+            updateVoiceUI(otherMessage);
+          }
+        });
+        audio.play().catch(() => {});
+      } else {
+        audio.pause();
+      }
+    }
+
+    function seekVoiceInMessage(messageId, valuePercent) {
+      const messageEl = stream.querySelector('.chat-msg[data-msg-id="' + String(messageId) + '"]');
+      if (!messageEl) return;
+      const audio = messageEl.querySelector('.chat-voice-player');
+      if (!audio) return;
+
+      const pct = Math.max(0, Math.min(100, Number(valuePercent || 0)));
+      const duration = Number(audio.duration || messageStore.get(Number(messageId))?.voice_duration_seconds || 0);
+      if (!duration) return;
+
+      audio.currentTime = duration * (pct / 100);
+      updateVoiceUI(messageEl);
+    }
+
+    function renderAttachmentBlock(msg) {
+      if (!msg.has_attachment || !msg.attachment_url) {
+        return '';
+      }
+
+      const fileName = escapeHtml(msg.attachment_name || 'file');
+      const fileUrl = escapeHtml(msg.attachment_url);
+
+      if (msg.attachment_is_image) {
+        return '<div class="chat-attachment-wrap">' +
+          '<a class="chat-attachment-image" href="' + fileUrl + '" target="_blank" rel="noopener noreferrer">' +
+            '<img src="' + fileUrl + '" alt="attachment" loading="lazy" />' +
+            '<div class="chat-attachment-caption">' + fileName + '</div>' +
+          '</a>' +
+        '</div>';
+      }
+
+      return '<div class="chat-attachment-wrap">' +
+        '<a class="chat-file-link" href="' + fileUrl + '" target="_blank" rel="noopener noreferrer">' +
+          '<i class="fa fa-file-arrow-down"></i>' +
+          '<span>' + fileName + '</span>' +
+        '</a>' +
+      '</div>';
+    }
+
+    function messageHtml(msg) {
+      const broadcastBadge = msg.is_broadcast
+        ? '<div class="chat-broadcast-badge"><i class="fa fa-bullhorn"></i><span>' + escapeHtml(text.broadcastBadge) + '</span></div>'
+        : '';
+      const actionButtons = [
+        '<button type="button" class="msg-action-btn" data-action="reply" data-message-id="' + msg.id + '" title="Reply"><i class="fa fa-reply"></i></button>',
+        '<button type="button" class="msg-action-btn" data-action="react" data-message-id="' + msg.id + '" title="React"><i class="fa fa-face-smile"></i></button>'
+      ];
+      if (msg.can_delete_self) {
+        actionButtons.push('<button type="button" class="msg-action-btn" data-action="delete" data-message-id="' + msg.id + '" data-can-delete-both="' + (msg.can_delete_for_both ? '1' : '0') + '" title="Delete"><i class="fa fa-trash"></i></button>');
+      }
+
+      return '' +
+        renderReplyBlock(msg) +
+        broadcastBadge +
+        (msg.message ? ('<div class="chat-msg-main">' + escapeHtml(msg.message || '') + '</div>') : '') +
+        renderVoiceBlock(msg) +
+        renderAttachmentBlock(msg) +
+        '<div class="chat-msg-meta">' +
+          '<div class="chat-msg-time" title="' + escapeHtml(msg.created_at_full || '') + '">' + escapeHtml(msg.created_at || '') + '</div>' +
+          '<div class="chat-msg-actions">' + actionButtons.join('') + '</div>' +
+        '</div>' +
+        renderReactionChips(msg) +
+        renderReactPicker(msg.id);
+    }
+
+    function messageRenderSignature(msg) {
+      return JSON.stringify({
+        id: Number(msg.id || 0),
+        message: msg.message || '',
+        message_preview: msg.message_preview || '',
+        is_broadcast: !!msg.is_broadcast,
+        has_voice: !!msg.has_voice,
+        voice_url: msg.voice_url || '',
+        voice_duration_seconds: Number(msg.voice_duration_seconds || 0),
+        has_attachment: !!msg.has_attachment,
+        attachment_url: msg.attachment_url || '',
+        attachment_name: msg.attachment_name || '',
+        attachment_is_image: !!msg.attachment_is_image,
+        created_at: msg.created_at || '',
+        created_at_full: msg.created_at_full || '',
+        is_seen: !!msg.is_seen,
+        can_delete_self: !!msg.can_delete_self,
+        can_delete_for_both: !!msg.can_delete_for_both,
+        reply_to: msg.reply_to || null,
+        reactions: msg.reactions || [],
+      });
+    }
+
+    function updateLastOutgoingStatus() {
+      stream.querySelectorAll('.chat-last-status').forEach(el => el.remove());
+      const allMessages = stream.querySelectorAll('.chat-msg[data-msg-id]');
+      if (!allMessages.length) {
+        return;
+      }
+
+      const lastMessageEl = allMessages[allMessages.length - 1];
+      if (!lastMessageEl.classList.contains('mine')) {
+        return;
+      }
+
+      const msgId = Number(lastMessageEl.dataset.msgId || 0);
+      const msg = messageStore.get(msgId);
+      if (!msg || !msg.is_seen) {
+        return;
+      }
+
+      const indicator = document.createElement('div');
+      indicator.className = 'chat-last-status';
+      indicator.textContent = text.seenStatus;
+      lastMessageEl.insertAdjacentElement('afterend', indicator);
+    }
+
+    function renderMessage(msg, appendAtEnd) {
+      const normalized = Object.assign({
+        reactions: [],
+        reply_to: null,
+        can_delete_self: true,
+        can_delete_for_both: false,
+      }, msg || {});
+
+      messageStore.set(Number(normalized.id), normalized);
+
+      const renderSig = messageRenderSignature(normalized);
+
+      const existing = stream.querySelector('.chat-msg[data-msg-id="' + String(normalized.id) + '"]');
+      if (existing && existing.dataset.renderSig === renderSig) {
+        stream.dataset.lastId = String(Math.max(Number(stream.dataset.lastId || 0), Number(normalized.id || 0)));
+        return normalized;
+      }
+
+      const el = document.createElement('div');
+      el.className = 'chat-msg ' + (normalized.is_mine ? 'mine' : 'them');
+      el.dataset.msgId = normalized.id;
+      el.dataset.renderSig = renderSig;
+      el.innerHTML = messageHtml(normalized);
+
+      const voiceAudio = el.querySelector('.chat-voice-player');
+      if (voiceAudio) {
+        voiceAudio.addEventListener('play', function () {
+          setVoiceButtonState(el, true);
+          updateVoiceUI(el);
+        });
+        voiceAudio.addEventListener('pause', function () {
+          setVoiceButtonState(el, false);
+          updateVoiceUI(el);
+        });
+        voiceAudio.addEventListener('ended', function () {
+          setVoiceButtonState(el, false);
+          updateVoiceUI(el);
+        });
+        voiceAudio.addEventListener('timeupdate', function () {
+          updateVoiceUI(el);
+        });
+        voiceAudio.addEventListener('loadedmetadata', function () {
+          updateVoiceUI(el);
+        });
+        setVoiceButtonState(el, !voiceAudio.paused);
+        updateVoiceUI(el);
+      }
+
+      if (existing) {
+        existing.replaceWith(el);
+      } else if (appendAtEnd !== false) {
+        stream.appendChild(el);
+      } else {
+        stream.prepend(el);
+      }
+
+      stream.dataset.lastId = String(Math.max(Number(stream.dataset.lastId || 0), Number(normalized.id || 0)));
+      ensureEmptyState();
+      updateLastOutgoingStatus();
+      return normalized;
+    }
+
+    function setPeerUnreadCount(peerId, count) {
+      const peerLink = document.querySelector('.chat-peer[data-peer-id="' + String(peerId) + '"]');
+      if (!peerLink) return;
+      const badge = peerLink.querySelector('.chat-unread');
+      if (!badge) return;
+      if (count > 0) {
+        badge.style.display = 'inline-block';
+        badge.textContent = String(count);
+      } else {
+        badge.style.display = 'none';
+        badge.textContent = '0';
+      }
+    }
+
+    function movePeerToTop(peerId) {
+      if (!peersContainer) return;
+      const peerLink = peersContainer.querySelector('.chat-peer[data-peer-id="' + String(peerId) + '"]');
+      if (!peerLink) return;
+      if (peersContainer.firstElementChild === peerLink) return;
+      peersContainer.prepend(peerLink);
+    }
+
+    function postData(url, payload) {
+      const body = new URLSearchParams();
+      Object.keys(payload || {}).forEach(key => {
+        if (payload[key] !== undefined && payload[key] !== null) {
+          body.set(key, payload[key]);
+        }
+      });
+
+      return fetch(url, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+          'X-CSRFToken': csrftoken || '',
+        },
+        body: body.toString(),
+      }).then(r => r.json());
+    }
+
+    function deleteMessageFlow(messageId, canDeleteForBoth) {
+      requestConfirm(text.deleteMessageConfirm).then(confirmed => {
+        if (!confirmed) return;
+
+        const scope = 'both';
+        const url = apiUrlFromTemplate(deleteMessageUrlTemplate, messageId);
+        postData(url, { scope })
+          .then(data => {
+            if (!data || !data.status) return;
+            messageStore.delete(Number(messageId));
+            const el = stream.querySelector('.chat-msg[data-msg-id="' + String(messageId) + '"]');
+            if (el) el.remove();
+            ensureEmptyState();
+            updateLastOutgoingStatus();
+          })
+          .catch(() => {});
+      });
+    }
+
+    function reactToMessage(messageId, emojiValue) {
+      const url = apiUrlFromTemplate(reactUrlTemplate, messageId);
+      postData(url, { emoji: emojiValue || '' })
+        .then(data => {
+          if (!data || !data.message) return;
+          renderMessage(data.message, true);
+        })
+        .catch(() => {});
+    }
+
+    function toggleReactPicker(messageId) {
+      document.querySelectorAll('.chat-msg.react-open').forEach(el => {
+        if (Number(el.dataset.msgId) !== Number(messageId)) {
+          el.classList.remove('react-open');
+        }
+      });
+      const el = stream.querySelector('.chat-msg[data-msg-id="' + String(messageId) + '"]');
+      if (el) el.classList.toggle('react-open');
+    }
+
+    function appendEmojiToInput(emoji) {
+      const start = input.selectionStart || 0;
+      const end = input.selectionEnd || 0;
+      const value = input.value || '';
+      input.value = value.slice(0, start) + emoji + value.slice(end);
+      const newPos = start + emoji.length;
+      input.focus();
+      input.setSelectionRange(newPos, newPos);
+    }
+
+    function renderEmojiPicker() {
+      emojiPicker.innerHTML = pickerEmojis
+        .map(emoji => '<button type="button" data-emoji="' + escapeHtml(emoji) + '">' + escapeHtml(emoji) + '</button>')
+        .join('');
+    }
+
+    function setRecordingStatus(message, isReady) {
+      if (!recordingStatus) {
+        return;
+      }
+      if (!message) {
+        recordingStatus.classList.remove('open', 'ready');
+        recordingStatus.textContent = '';
+        return;
+      }
+      recordingStatus.classList.add('open');
+      recordingStatus.classList.toggle('ready', !!isReady);
+      recordingStatus.textContent = message;
+    }
+
+    function resetRecordedVoice(showStatusText) {
+      recordedBlob = null;
+      recordedDurationSeconds = 0;
+      if (showStatusText) {
+        setRecordingStatus(text.recordingRemoved, false);
+      } else {
+        setRecordingStatus('', false);
+      }
+    }
+
+    function setAttachmentStatus(message, isError) {
+      if (!attachmentStatus || !attachmentStatusText) {
+        return;
+      }
+      if (!message) {
+        attachmentStatus.classList.remove('open', 'error');
+        attachmentStatusText.textContent = '';
+        return;
+      }
+      attachmentStatus.classList.add('open');
+      attachmentStatus.classList.toggle('error', !!isError);
+      attachmentStatusText.textContent = message;
+    }
+
+    function refreshAttachmentButton() {
+      if (!attachmentToggleBtn) {
+        return;
+      }
+      attachmentToggleBtn.classList.toggle('has-file', !!selectedAttachment);
+    }
+
+    function clearAttachment(showStatusText) {
+      selectedAttachment = null;
+      if (attachmentInput) {
+        attachmentInput.value = '';
+      }
+      if (showStatusText) {
+        setAttachmentStatus(text.attachmentRemoved, false);
+      } else {
+        setAttachmentStatus('', false);
+      }
+      refreshAttachmentButton();
+    }
+
+    function selectAttachment(fileObj) {
+      if (!fileObj) {
+        clearAttachment(false);
+        return;
+      }
+
+      const maxBytes = 25 * 1024 * 1024;
+      if (fileObj.size > maxBytes) {
+        clearAttachment(false);
+        setAttachmentStatus(text.attachmentTooLarge, true);
+        return;
+      }
+
+      selectedAttachment = fileObj;
+      setAttachmentStatus(text.attachmentReadyPrefix + ': ' + fileObj.name, false);
+      refreshAttachmentButton();
+    }
+
+    function preferredRecordingMimeType() {
+      if (!window.MediaRecorder || !MediaRecorder.isTypeSupported) {
+        return '';
+      }
+      const types = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/ogg'];
+      for (const type of types) {
+        if (MediaRecorder.isTypeSupported(type)) {
+          return type;
+        }
+      }
+      return '';
+    }
+
+    function refreshRecordButton() {
+      if (!recordToggleBtn) {
+        return;
+      }
+      recordToggleBtn.classList.toggle('recording', isRecording);
+      const icon = recordToggleBtn.querySelector('i');
+      if (icon) {
+        icon.className = isRecording ? 'fa fa-stop' : 'fa fa-microphone';
+      }
+    }
+
+    async function startVoiceRecording() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) {
+        setRecordingStatus(text.recordNotSupported, false);
+        return;
+      }
+
+      try {
+        const streamTrack = await navigator.mediaDevices.getUserMedia({ audio: true });
+        recordingChunks = [];
+        recordingStartedAt = Date.now();
+
+        const mimeType = preferredRecordingMimeType();
+        mediaRecorder = mimeType ? new MediaRecorder(streamTrack, { mimeType }) : new MediaRecorder(streamTrack);
+        mediaRecorder.ondataavailable = function (event) {
+          if (event.data && event.data.size > 0) {
+            recordingChunks.push(event.data);
+          }
+        };
+        mediaRecorder.onstop = function () {
+          const duration = Math.round((Date.now() - recordingStartedAt) / 1000);
+          recordedDurationSeconds = Math.max(1, duration || 0);
+          const outputType = mimeType || (recordingChunks[0] && recordingChunks[0].type) || 'audio/webm';
+          recordedBlob = new Blob(recordingChunks, { type: outputType });
+          streamTrack.getTracks().forEach(track => track.stop());
+          setRecordingStatus(text.recordingReadyPrefix + ' (' + formatDuration(recordedDurationSeconds) + ')', true);
+        };
+
+        mediaRecorder.start();
+        isRecording = true;
+        refreshRecordButton();
+        setRecordingStatus(text.recordingStart, false);
+      } catch (_) {
+        setRecordingStatus(text.recordPermissionError, false);
+      }
+    }
+
+    function stopVoiceRecording() {
+      if (!mediaRecorder || mediaRecorder.state !== 'recording') {
+        return;
+      }
+      mediaRecorder.stop();
+      isRecording = false;
+      refreshRecordButton();
+    }
+
+    function toggleVoiceRecording() {
+      if (isRecording) {
+        stopVoiceRecording();
+        return;
+      }
+      if (recordedBlob) {
+        resetRecordedVoice(true);
+        return;
+      }
+      startVoiceRecording();
+      refreshRecordButton();
+    }
+
+    function guessVoiceExtension(mimeType) {
+      const mt = (mimeType || '').toLowerCase();
+      if (mt.includes('ogg')) return 'ogg';
+      if (mt.includes('mp4') || mt.includes('m4a')) return 'm4a';
+      if (mt.includes('mpeg') || mt.includes('mp3')) return 'mp3';
+      if (mt.includes('wav')) return 'wav';
+      if (mt.includes('aac')) return 'aac';
+      return 'webm';
+    }
+
+    function applyFullSync(messages) {
+      const visibleIds = new Set();
+      stream.dataset.lastId = '0';
+
+      if (Array.isArray(messages)) {
+        messages.forEach(msg => {
+          visibleIds.add(Number(msg.id));
+          renderMessage(msg, true);
+        });
+      }
+
+      stream.querySelectorAll('.chat-msg[data-msg-id]').forEach(el => {
+        const msgId = Number(el.dataset.msgId || 0);
+        if (!visibleIds.has(msgId)) {
+          messageStore.delete(msgId);
+          el.remove();
+        }
+      });
+
+      ensureEmptyState();
+      updateLastOutgoingStatus();
+    }
+
+    function pullNewMessages() {
+      const runFullSync = true;
+      const after = Number(stream.dataset.lastId || 0);
+      const url = runFullSync ? (messagesUrl + '?full=1') : (messagesUrl + '?after=' + after);
+      const shouldAutoScroll = isUserNearBottom(100);
+
+      fetch(url, { credentials: 'same-origin' })
+        .then(r => r.json())
+        .then(data => {
+          if (!data.messages || !Array.isArray(data.messages)) return;
+
+          if (runFullSync) {
+            applyFullSync(data.messages);
+          } else {
+            data.messages.forEach(msg => renderMessage(msg, true));
+          }
+
+          if (data.messages.length > 0) {
+            if (shouldAutoScroll) {
+              stream.scrollTop = stream.scrollHeight;
+            }
+            setPeerUnreadCount(peerUserId, 0);
+            movePeerToTop(peerUserId);
+          }
+        })
+        .catch(() => {});
+    }
+
+    function renderInitialMessages() {
+      if (Array.isArray(initialMessages)) {
+        initialMessages.forEach(msg => renderMessage(msg, true));
+      }
+      ensureEmptyState();
+      stream.scrollTop = stream.scrollHeight;
+    }
+
+    window.addEventListener('chat-notifications-updated', function (event) {
+      const detail = event.detail || {};
+      const unreadPreview = Array.isArray(detail.unread_preview) ? detail.unread_preview : [];
+      const newMessages = Array.isArray(detail.new_messages) ? detail.new_messages : [];
+
+      const unreadMap = {};
+      unreadPreview.forEach(item => {
+        unreadMap[String(item.sender_id)] = Number(item.count || 0);
+      });
+
+      document.querySelectorAll('.chat-peer[data-peer-id]').forEach(link => {
+        const peerId = link.dataset.peerId;
+        setPeerUnreadCount(peerId, unreadMap[peerId] || 0);
+      });
+
+      newMessages.forEach(item => movePeerToTop(item.sender_id));
+    });
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      const textValue = (input.value || '').trim();
+      if (isRecording) {
+        stopVoiceRecording();
+        return;
+      }
+      if (!textValue && !recordedBlob && !selectedAttachment) return;
+
+      const payload = new FormData();
+      payload.set('message', textValue);
+      if (replyTarget && replyTarget.id) {
+        payload.set('reply_to_id', String(replyTarget.id));
+      }
+      if (recordedBlob) {
+        const ext = guessVoiceExtension(recordedBlob.type);
+        payload.append('voice_message', recordedBlob, 'voice-message-' + String(Date.now()) + '.' + ext);
+        if (recordedDurationSeconds > 0) {
+          payload.set('voice_duration_seconds', String(recordedDurationSeconds));
+        }
+      }
+      if (selectedAttachment) {
+        payload.append('attachment', selectedAttachment, selectedAttachment.name || ('attachment-' + String(Date.now())));
+      }
+
+      fetch(sendUrl, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'X-CSRFToken': csrftoken || '',
+        },
+        body: payload,
+      })
+        .then(r => r.json())
+        .then(data => {
+          if (data && data.message) {
+            renderMessage(data.message, true);
+            input.value = '';
+            clearReplyTarget();
+            resetRecordedVoice(false);
+            clearAttachment(false);
+            movePeerToTop(peerUserId);
+            stream.scrollTop = stream.scrollHeight;
+          } else {
+            if (data && data.error === 'attachment_too_large') {
+              setAttachmentStatus(text.attachmentTooLarge, true);
+            } else if (data && (data.error === 'voice_too_large' || data.error === 'voice_invalid_type')) {
+              setRecordingStatus(text.sendVoiceError, false);
+            } else {
+              setAttachmentStatus(text.sendAttachmentError, true);
+            }
+          }
+        })
+        .catch(() => {
+          setAttachmentStatus(text.sendAttachmentError, true);
+        });
+    });
+
+    replyCancelBtn.addEventListener('click', function () {
+      clearReplyTarget();
+    });
+
+    deleteConversationBtn.addEventListener('click', function () {
+      requestConfirm(text.deleteConversationConfirm).then(confirmed => {
+        if (!confirmed) return;
+
+        const mode = 'both';
+        postData(deleteConversationUrl, { mode })
+          .then(data => {
+            if (!data || data.status !== 'ok') return;
+            messageStore.clear();
+            stream.innerHTML = '';
+            stream.dataset.lastId = '0';
+            clearReplyTarget();
+            resetRecordedVoice(false);
+            clearAttachment(false);
+            ensureEmptyState();
+            updateLastOutgoingStatus();
+            setPeerUnreadCount(peerUserId, 0);
+          })
+          .catch(() => {});
+      });
+    });
+
+    if (broadcastBtn) {
+      broadcastBtn.addEventListener('click', function () {
+        openBroadcastModal();
+      });
+    }
+
+    if (broadcastAudience) {
+      broadcastAudience.addEventListener('change', function () {
+        toggleBroadcastDepartmentField();
+      });
+      toggleBroadcastDepartmentField();
+    }
+
+    if (broadcastCancelBtn) {
+      broadcastCancelBtn.addEventListener('click', function () {
+        closeBroadcastModal(false);
+      });
+    }
+
+    if (broadcastForm) {
+      broadcastForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const messageText = (broadcastMessageInput?.value || '').trim();
+        if (!messageText) {
+          if (typeof showToast === 'function') {
+            showToast(text.broadcastEmpty, 'warning');
+          } else {
+            window.alert(text.broadcastEmpty);
+          }
+          return;
+        }
+
+        const audience = (broadcastAudience?.value || 'all').trim();
+        const payload = { message: messageText, audience: audience };
+
+        if (audience === 'department') {
+          const typedDepartment = (broadcastDepartmentInput?.value || '').trim();
+          if (!typedDepartment) {
+            if (typeof showToast === 'function') {
+              showToast(text.broadcastDepartmentRequired, 'warning');
+            } else {
+              window.alert(text.broadcastDepartmentRequired);
+            }
+            return;
+          }
+
+          const normalizedDepartment = broadcastDepartments.find(function (name) {
+            return String(name).toLowerCase() === typedDepartment.toLowerCase();
+          }) || typedDepartment;
+          payload.department = normalizedDepartment;
+        }
+
+        if (broadcastSendBtn) {
+          broadcastSendBtn.disabled = true;
+        }
+
+        postData(broadcastUrl, payload)
+          .then(data => {
+            if (!data || data.status !== 'ok') {
+              throw new Error('broadcast_failed');
+            }
+
+            const sentCount = Number(data.sent || 0);
+            const audienceText = audienceLabel(String(data.audience || audience), String(data.department || payload.department || ''));
+            const successText = text.broadcastSuccessPrefix + ' ' + sentCount + ' ' + text.broadcastSuccessSuffix + ' (' + audienceText + ')';
+
+            closeBroadcastModal(true);
+            if (typeof showToast === 'function') {
+              showToast(successText, 'success');
+            } else {
+              window.alert(successText);
+            }
+
+            pullNewMessages();
+          })
+          .catch(() => {
+            if (typeof showToast === 'function') {
+              showToast(text.broadcastError, 'error');
+            } else {
+              window.alert(text.broadcastError);
+            }
+          })
+          .finally(() => {
+            if (broadcastSendBtn) {
+              broadcastSendBtn.disabled = false;
+            }
+          });
+      });
+    }
+
+    stream.addEventListener('click', function (e) {
+      const actionEl = e.target.closest('[data-action]');
+      if (!actionEl) return;
+
+      const action = actionEl.dataset.action;
+      const messageId = Number(actionEl.dataset.messageId || 0);
+      if (!messageId) return;
+
+      const msg = messageStore.get(messageId);
+      if (!msg) return;
+
+      if (action === 'reply') {
+        setReplyTarget(msg);
+        return;
+      }
+
+      if (action === 'react') {
+        toggleReactPicker(messageId);
+        return;
+      }
+
+      if (action === 'toggle-voice') {
+        toggleVoiceInMessage(messageId);
+        return;
+      }
+
+      if (action === 'react-emoji') {
+        reactToMessage(messageId, actionEl.dataset.emoji || '');
+        return;
+      }
+
+      if (action === 'reaction-chip') {
+        const mine = actionEl.dataset.mine === '1';
+        reactToMessage(messageId, mine ? '' : (actionEl.dataset.emoji || ''));
+        return;
+      }
+
+      if (action === 'delete') {
+        deleteMessageFlow(messageId, actionEl.dataset.canDeleteBoth === '1');
+      }
+    });
+
+    stream.addEventListener('input', function (e) {
+      const seekEl = e.target.closest('[data-action="voice-seek"]');
+      if (!seekEl) return;
+      const messageId = Number(seekEl.dataset.messageId || 0);
+      if (!messageId) return;
+      seekVoiceInMessage(messageId, seekEl.value);
+    });
+
+    if (recordToggleBtn) {
+      recordToggleBtn.addEventListener('click', function () {
+        toggleVoiceRecording();
+      });
+    }
+
+    if (attachmentToggleBtn && attachmentInput) {
+      attachmentToggleBtn.addEventListener('click', function () {
+        attachmentInput.click();
+      });
+      attachmentInput.addEventListener('change', function () {
+        selectAttachment(attachmentInput.files && attachmentInput.files[0] ? attachmentInput.files[0] : null);
+      });
+    }
+
+    if (attachmentRemoveBtn) {
+      attachmentRemoveBtn.addEventListener('click', function () {
+        clearAttachment(true);
+      });
+    }
+
+    if (confirmCancelBtn) {
+      confirmCancelBtn.addEventListener('click', function () {
+        resolveConfirm(false);
+      });
+    }
+
+    if (confirmOkBtn) {
+      confirmOkBtn.addEventListener('click', function () {
+        resolveConfirm(true);
+      });
+    }
+
+    if (confirmModal) {
+      confirmModal.addEventListener('click', function (e) {
+        if (e.target && e.target.getAttribute('data-confirm-close') === '1') {
+          resolveConfirm(false);
+        }
+      });
+    }
+
+    if (broadcastModal) {
+      broadcastModal.addEventListener('click', function (e) {
+        if (e.target && e.target.getAttribute('data-broadcast-close') === '1') {
+          closeBroadcastModal(false);
+        }
+      });
+    }
+
+    emojiToggle.addEventListener('click', function (e) {
+      e.stopPropagation();
+      emojiPicker.classList.toggle('open');
+    });
+
+    emojiPicker.addEventListener('click', function (e) {
+      const target = e.target.closest('button[data-emoji]');
+      if (!target) return;
+      appendEmojiToInput(target.dataset.emoji || '');
+      emojiPicker.classList.remove('open');
+    });
+
+    document.addEventListener('click', function (e) {
+      if (!emojiPicker.contains(e.target) && e.target !== emojiToggle) {
+        emojiPicker.classList.remove('open');
+      }
+      if (!stream.contains(e.target)) {
+        stream.querySelectorAll('.chat-msg.react-open').forEach(el => el.classList.remove('react-open'));
+      }
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'Escape') return;
+
+      if (broadcastModal && broadcastModal.classList.contains('open')) {
+        closeBroadcastModal(false);
+        return;
+      }
+
+      if (confirmModal && confirmModal.classList.contains('open')) {
+        resolveConfirm(false);
+      }
+    });
+
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        form.requestSubmit();
+      }
+    });
+
+    renderEmojiPicker();
+    refreshRecordButton();
+    refreshAttachmentButton();
+    renderInitialMessages();
+    setInterval(pullNewMessages, 2000);
+  })();
+</script>
+{% endblock %}
