@@ -131,17 +131,17 @@ class Alert(models.Model):
     description = models.TextField()
     severity = models.CharField(max_length=10, choices=SEVERITY_CHOICES, default='medium')
     alert_type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='system')
-    drone = models.ForeignKey(Drone, null=True, blank=True,
-                              on_delete=models.SET_NULL, related_name='alerts')
+    #drone = models.ForeignKey(Drone, null=True, blank=True,
+    #                          on_delete=models.SET_NULL, related_name='alerts')
     is_read = models.BooleanField(default=False)
     is_resolved = models.BooleanField(default=False)
     resolved_by = models.ForeignKey(CustomUser, null=True, blank=True,
                                     on_delete=models.SET_NULL, related_name='resolved_alerts')
-    thumbnail = models.ImageField(upload_to='alert_thumbs/', null=True, blank=True)
-    latitude = models.FloatField(null=True, blank=True)
-    longitude = models.FloatField(null=True, blank=True)
+    #thumbnail = models.ImageField(upload_to='alert_thumbs/', null=True, blank=True)
+    #latitude = models.FloatField(null=True, blank=True)
+    #longitude = models.FloatField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    #updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ['-created_at']

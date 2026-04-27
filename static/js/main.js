@@ -57,7 +57,7 @@ const recentAlertPopupAt = new Map();
 
 function shouldPopupAlert(alert) {
   const now = Date.now();
-  const fingerprint = [alert.alert_type, alert.drone, alert.title].join('|').toLowerCase();
+  const fingerprint = [alert.alert_type, alert.title].join('|').toLowerCase();
   const isUnknownFace = /unknown face|visage inconnu|وجه غير معروف/i.test(alert.title || '');
   const cooldownMs = isUnknownFace ? 5 * 60 * 1000 : 60 * 1000;
   const lastShownAt = recentAlertPopupAt.get(fingerprint) || 0;
@@ -389,7 +389,6 @@ function showAlertPopup(alert) {
     <div class="alert-popup-body">
       <strong>${alert.title}</strong>
       <div class="alert-popup-meta">
-        <i class="fa fa-helicopter"></i> ${alert.drone} &nbsp;·&nbsp;
         <i class="fa fa-clock"></i> ${alert.created_at}
       </div>
     </div>

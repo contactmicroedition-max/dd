@@ -89,11 +89,9 @@ class Command(BaseCommand):
                 ('System Health Check', 'All systems nominal. Scheduled diagnostic complete.', 'low', 'system'),
             ]
             for i, (title, desc, severity, atype) in enumerate(alert_templates):
-                drone = drones[i % len(drones)]
                 Alert.objects.create(
                     title=title, description=desc,
                     severity=severity, alert_type=atype,
-                    drone=drone,
                     is_read=(i > 4),
                     is_resolved=(i > 5),
                 )

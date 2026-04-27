@@ -104,7 +104,6 @@
           <div class="alert-row-title">{{ alert.title }}</div>
           <div class="alert-row-meta">
             <span class="badge-sev sev-{{ alert.severity }}">{% if alert.severity == 'low' %}{% if lang == 'ar' %}منخفض{% elif lang == 'fr' %}FAIBLE{% else %}LOW{% endif %}{% elif alert.severity == 'medium' %}{% if lang == 'ar' %}متوسط{% elif lang == 'fr' %}MOYENNE{% else %}MEDIUM{% endif %}{% elif alert.severity == 'high' %}{% if lang == 'ar' %}عال{% elif lang == 'fr' %}ELEVEE{% else %}HIGH{% endif %}{% else %}{% if lang == 'ar' %}حرج{% elif lang == 'fr' %}CRITIQUE{% else %}CRITICAL{% endif %}{% endif %}</span>
-            <span class="text-muted">{% if alert.drone %}{{ alert.drone.name }}{% else %}{% if lang == 'ar' %}النظام{% elif lang == 'fr' %}Systeme{% else %}System{% endif %}{% endif %}</span>
             <span class="text-muted">{% if lang == 'ar' %}منذ {{ alert.created_at|timesince }}{% elif lang == 'fr' %}il y a {{ alert.created_at|timesince }}{% else %}{{ alert.created_at|timesince }} ago{% endif %}</span>
           </div>
         </div>

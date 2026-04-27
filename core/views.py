@@ -319,7 +319,7 @@ def _assistant_alert_summary(lang):
     high = unresolved.filter(severity='high').count()
     total = unresolved.count()
 
-    latest = unresolved.select_related('drone').order_by('-created_at').first()
+    latest = unresolved.order_by('-created_at').first()
     if latest:
         latest_line = tr(
             lang,
@@ -392,7 +392,7 @@ def _assistant_operational_context(lang):
 
 def _assistant_detailed_alert_context(lang, limit=8):
     alerts = list(
-        Alert.objects.select_related('drone')
+        Alert.objects
         .filter(is_resolved=False)
         .order_by('-created_at')[:limit]
     )
@@ -406,20 +406,13 @@ def _assistant_detailed_alert_context(lang, limit=8):
 
     lines = []
     for alert in alerts:
-        drone_name = alert.drone.name if alert.drone else tr(lang, 'System', 'النظام', 'Systeme')
-        location = (alert.drone.location_name if alert.drone and alert.drone.location_name else '')
-        if not location and alert.latitude is not None and alert.longitude is not None:
-            location = f'{alert.latitude:.4f},{alert.longitude:.4f}'
-        if not location:
-            location = tr(lang, 'Unknown', 'غير محدد', 'Inconnue')
-
         description = (alert.description or '').strip().replace('\n', ' ')
         if len(description) > 180:
             description = description[:180].rstrip() + '...'
 
         lines.append(
             f'#{alert.id} | severity={alert.severity} | type={alert.alert_type} | '
-            f'title={alert.title} | drone={drone_name} | location={location} | '
+            f'title={alert.title} | '
             f'created={timezone.localtime(alert.created_at).strftime("%Y-%m-%d %H:%M")} | '
             f'description={description}'
         )
@@ -435,7 +428,7 @@ def _assistant_detailed_alert_context(lang, limit=8):
 
 def _assistant_latest_critical_alert_detail(lang):
     alert = (
-        Alert.objects.select_related('drone')
+        Alert.objects
         .filter(is_resolved=False, severity='critical')
         .order_by('-created_at')
         .first()
@@ -448,30 +441,23 @@ def _assistant_latest_critical_alert_detail(lang):
             'Il n y a pas d alerte critique non resolue actuellement.',
         )
 
-    drone_name = alert.drone.name if alert.drone else tr(lang, 'System', 'النظام', 'Systeme')
-    location = (alert.drone.location_name if alert.drone and alert.drone.location_name else '')
-    if not location and alert.latitude is not None and alert.longitude is not None:
-        location = f'{alert.latitude:.4f},{alert.longitude:.4f}'
-    if not location:
-        location = tr(lang, 'Unknown', 'غير محدد', 'Inconnue')
-
     return tr(
         lang,
         (
             f'Latest critical unresolved alert is #{alert.id}: {alert.title}. '
-            f'Type: {alert.alert_type}. Drone: {drone_name}. Location: {location}. '
+            f'Type: {alert.alert_type}. '
             f'Time: {timezone.localtime(alert.created_at).strftime("%Y-%m-%d %H:%M")}. '
             f'Description: {alert.description}'
         ),
         (
             f'احدث تنبيه حرج غير محلول هو #{alert.id}: {alert.title}. '
-            f'النوع: {alert.alert_type}. الطائرة: {drone_name}. الموقع: {location}. '
+            f'النوع: {alert.alert_type}. '
             f'الوقت: {timezone.localtime(alert.created_at).strftime("%Y-%m-%d %H:%M")}. '
             f'الوصف: {alert.description}'
         ),
         (
             f'Derniere alerte critique non resolue : #{alert.id} {alert.title}. '
-            f'Type : {alert.alert_type}. Drone : {drone_name}. Lieu : {location}. '
+            f'Type : {alert.alert_type}. '
             f'Heure : {timezone.localtime(alert.created_at).strftime("%Y-%m-%d %H:%M")}. '
             f'Description : {alert.description}'
         ),
@@ -584,7 +570,7 @@ def _assistant_db_overview_context(lang):
         Drone.objects.select_related('assigned_to').order_by('-id')[:limit]
     )
     alerts = list(
-        Alert.objects.select_related('drone').order_by('-created_at')[:limit]
+        Alert.objects.order_by('-created_at')[:limit]
     )
     reports = list(
         Report.objects.select_related('generated_by').order_by('-created_at')[:limit]
@@ -613,10 +599,9 @@ def _assistant_db_overview_context(lang):
 
     alert_lines = []
     for a in alerts:
-        drone_name = a.drone.name if a.drone else 'System'
         alert_lines.append(
             f"#{a.id} {a.severity}/{a.alert_type} resolved={int(bool(a.is_resolved))} read={int(bool(a.is_read))} "
-            f"drone={drone_name} title={_assistant_compact_text(a.title, 70)} "
+            f"title={_assistant_compact_text(a.title, 70)} "
             f"at={timezone.localtime(a.created_at).strftime('%Y-%m-%d %H:%M')}"
         )
 
@@ -1129,7 +1114,7 @@ def _assistant_reply_for_query(query_text, lang, history=None):
     alert_id_match = re.search(r'(?:alert\s*#?\s*|#)(\d+)', q)
     if alert_id_match:
         alert_id = int(alert_id_match.group(1))
-        alert = Alert.objects.select_related('drone').filter(id=alert_id).first()
+        alert = Alert.objects.filter(id=alert_id).first()
         if not alert:
             return tr(
                 lang,
@@ -1139,12 +1124,11 @@ def _assistant_reply_for_query(query_text, lang, history=None):
             )
 
         status = tr(lang, 'Resolved' if alert.is_resolved else 'Unresolved', 'محلول' if alert.is_resolved else 'غير محلول', 'Resolue' if alert.is_resolved else 'Non resolue')
-        drone_name = alert.drone.name if alert.drone else tr(lang, 'System', 'النظام', 'Systeme')
         summary = tr(
             lang,
-            f"Alert #{alert.id}: {alert.title} | Severity: {alert.severity} | Status: {status} | Drone: {drone_name}.",
-            f"التنبيه #{alert.id}: {alert.title} | الشدة: {alert.severity} | الحالة: {status} | الطائرة: {drone_name}.",
-            f"Alerte #{alert.id} : {alert.title} | Severite : {alert.severity} | Statut : {status} | Drone : {drone_name}.",
+            f"Alert #{alert.id}: {alert.title} | Severity: {alert.severity} | Status: {status}.",
+            f"التنبيه #{alert.id}: {alert.title} | الشدة: {alert.severity} | الحالة: {status}.",
+            f"Alerte #{alert.id} : {alert.title} | Severite : {alert.severity} | Statut : {status}.",
         )
         return summary + "\n" + _assistant_alert_action_text(alert, lang)
 
@@ -2503,17 +2487,13 @@ def inspect_agent(request, user_id):
         return redirect('core:agents_list')
     
     user.activity_status = get_agent_activity_status(user, get_lang(request))
-    
-    # Get user's activities (drones, alerts related to their drones, etc.)
+
     assigned_drones = Drone.objects.filter(assigned_to=user)
-    
-    # Get alerts from assigned drones
-    alerts_created = Alert.objects.filter(drone__in=assigned_drones).order_by('-created_at')[:10]
-    
+
     context = {
         'agent': user,
         'assigned_drones': assigned_drones,
-        'alerts_created': alerts_created,
+        'alerts_created': Alert.objects.none(),
     }
     return render(request, 'core/users/inspect_agent.html', context)
 
@@ -3182,10 +3162,9 @@ def drone_list(request):
 @login_required
 def drone_detail(request, pk):
     drone = get_object_or_404(Drone, pk=pk)
-    recent_alerts = Alert.objects.filter(drone=drone).order_by('-created_at')[:10]
     return render(request, 'core/drones/drone_detail.html', {
         'drone': drone,
-        'recent_alerts': recent_alerts,
+        'recent_alerts': Alert.objects.none(),
     })
 
 
@@ -3497,7 +3476,6 @@ def resolve_alert(request, pk):
         severity='info',
         source='alerts',
         user=request.user,
-        drone=alert.drone,
         alert=alert,
         details={'severity': alert.severity, 'alert_type': alert.alert_type},
     )
@@ -3524,7 +3502,6 @@ def alert_delete(request, pk):
     deleted_title = alert.title
     deleted_severity = alert.severity
     deleted_type = alert.alert_type
-    deleted_drone = alert.drone
     alert.delete()
 
     _log_security_event(
@@ -3533,7 +3510,6 @@ def alert_delete(request, pk):
         severity='warning',
         source='alerts',
         user=request.user,
-        drone=deleted_drone,
         details={
             'action': 'alert_delete',
             'alert_id': deleted_id,
@@ -3625,7 +3601,6 @@ def live_alerts_api(request):
         'severity': a.severity,
         'severity_color': a.severity_color,
         'alert_type': t_map.get(a.alert_type, a.get_alert_type_display()),
-        'drone': a.drone.name if a.drone else tr(lang, 'System', 'النظام', 'Systeme'),
         'created_at': a.created_at.strftime('%H:%M:%S'),
     } for a in alerts]
     return JsonResponse({'alerts': data, 'count': len(data)})
@@ -3634,8 +3609,6 @@ def live_alerts_api(request):
 @login_required
 def simulate_alert(request):
     """Dev helper: create a random simulated alert."""
-    drones = Drone.objects.filter(status__in=['online', 'patrolling'])
-    drone = random.choice(list(drones)) if drones else None
     severity = random.choice(['low', 'medium', 'high', 'critical'])
     alert_type = random.choice([c[0] for c in Alert.TYPE_CHOICES])
     lang = get_lang(request)
@@ -3682,7 +3655,6 @@ def simulate_alert(request):
         ),
         severity=severity,
         alert_type=alert_type,
-        drone=drone,
     )
     _log_security_event(
         'alert_created',
@@ -3690,7 +3662,6 @@ def simulate_alert(request):
         severity='critical' if severity == 'critical' else ('warning' if severity in ['high', 'medium'] else 'info'),
         source='alert_simulation',
         user=request.user,
-        drone=drone,
         alert=alert,
         details={'severity': severity, 'alert_type': alert_type},
     )
@@ -4202,8 +4173,7 @@ def reports_index(request):
         'critical': Alert.objects.filter(severity='critical').count(),
     }
 
-    drone_stats = {d.name: Alert.objects.filter(drone=d).count()
-                   for d in Drone.objects.all()}
+    drone_stats = {}
 
     reports = Report.objects.all()
     return render(request, 'core/reports/reports.html', {

@@ -57,7 +57,7 @@ class DroneAdmin(admin.ModelAdmin):
 # ========== ALERT ADMIN ==========
 @admin.register(Alert)
 class AlertAdmin(admin.ModelAdmin):
-    list_display = ['title', 'severity', 'alert_type', 'drone', 'is_read', 'is_resolved', 'created_at']
+    list_display = ['title', 'severity', 'alert_type', 'is_read', 'is_resolved', 'created_at']
     list_filter = ['severity', 'alert_type', 'is_read', 'is_resolved']
     search_fields = ['title', 'description']
     list_editable = ['is_read', 'is_resolved']

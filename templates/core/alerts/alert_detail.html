@@ -29,10 +29,6 @@
     </div>
     <div class="detail-meta-grid">
       <div class="meta-item">
-        <label>{% if lang == 'ar' %}الطائرة{% elif lang == 'fr' %}Drone{% else %}Drone{% endif %}</label>
-        <span>{% if alert.drone %}<a href="{% url 'core:drone_detail' alert.drone.pk %}">{{ alert.drone.name }}</a>{% else %}{% if lang == 'ar' %}النظام{% elif lang == 'fr' %}Systeme{% else %}System{% endif %}{% endif %}</span>
-      </div>
-      <div class="meta-item">
         <label>{% if lang == 'ar' %}تاريخ الانشاء{% elif lang == 'fr' %}Cree le{% else %}Created{% endif %}</label>
         <span>{{ alert.created_at|date:"d M Y H:i:s" }}</span>
       </div>
